@@ -1,0 +1,34 @@
+appId: io.github.erikedits.resourcepackcreator
+productName: Resource Pack Creator
+artifactName: ${name}-${version}-${arch}.${ext}
+directories:
+  output: dist
+  # Holds icon.png: Electron's default icon for now (docs/DECISIONS.md #107); the MSI target needs a file.
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+win:
+  target:
+    - nsis
+    - msi
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Graphics
+  # Matches the .desktop file to Electron's app_id so the window groups with its launcher.
+  syncDesktopName: true
+  maintainer: ErikEdits <ErikEdits@users.noreply.github.com>
+# Auto-update reads releases from here (docs/DECISIONS.md #81).
+publish:
+  provider: github
+  owner: ErikEdits
+  repo: reccourcepackcreator
+  # Upload into a draft or a published release; the release workflow creates it beforehand.
+  releaseType: release
