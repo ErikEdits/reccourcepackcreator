@@ -1,20 +1,31 @@
 name: Release
 
-# Pushing a tag like v0.1.0 creates a draft release, attaches the Windows and
-# Linux installers to it and publishes it once both uploads succeeded. The tag
-# must match the version in package.json.
+# Two ways to release; the tag must match the version in package.json:
+#  - publish a release on GitHub with a new tag like v0.1.0, or
+#  - push such a tag, which creates a draft release that is published at the end.
+# Either way the Windows and Linux installers are built and attached, and the
+# release notes are taken from CHANGELOG.md.
 on:
   push:
     tags: ['v*']
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
+# A release created on GitHub can also report the tag push; run one after the other.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  draft:
+  prepare:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - name: Check that the tag matches package.json
@@ -24,20 +35,26 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version ($expected)"
             exit 1
           fi
-      - name: Create draft release
+      - name: Create the release or update its notes
         run: |
           # Release notes: this version's section of CHANGELOG.md, else GitHub's generated notes.
           awk -v heading="## [${GITHUB_REF_NAME#v}]" \
             'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' \
             CHANGELOG.md > notes.md
-          if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
-            --title "Resource Pack Creator $GITHUB_REF_NAME" "${notes[@]}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          title="Resource Pack Creator $GITHUB_REF_NAME"
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            if [ -s notes.md ]; then
+              gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+                --title "$title" --notes-file notes.md
+            fi
+          else
+            if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
+              --title "$title" "${notes[@]}"
+          fi
 
   package:
-    needs: draft
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -57,10 +74,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Package and upload to the draft release
+      - name: Package and upload to the release
         run: npx electron-builder ${{ matrix.target }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Allow uploading to a release that was published on GitHub before this run.
+          EP_GH_IGNORE_TIME: 'true'
 
   publish:
     needs: package

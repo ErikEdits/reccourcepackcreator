@@ -68,11 +68,13 @@ in the system browser. Details: [SECURITY.md](SECURITY.md).
 
 ### Releases
 
-Pushing a tag such as `v0.1.0` (matching the version in `package.json`) makes
-GitHub Actions build the Windows (NSIS installer, MSI) and Linux (AppImage,
-`.deb`) packages and publish them as a GitHub release. Every push also builds
-the installers as downloadable CI artifacts. Installers are currently unsigned,
-so Windows SmartScreen will warn on first launch.
+To release, bump the version in `package.json`, add a section to
+`CHANGELOG.md`, then either publish a release on GitHub with a new tag such as
+`v0.1.0`, or push that tag. GitHub Actions then builds the Windows (NSIS
+installer, MSI) and Linux (AppImage, `.deb`) packages, attaches them to the
+release and fills in the notes from the changelog. Every push also builds the
+installers as downloadable CI artifacts. Installers are currently unsigned, so
+Windows SmartScreen will warn on first launch.
 
 ## Licence
 
