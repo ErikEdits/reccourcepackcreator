@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef, type MouseEvent } from 'react'
 import { COLOURS, SECTION, STYLES } from '../../../shared/text-format'
 import { inputClass } from './ui'
 
@@ -15,18 +15,28 @@ export function DescriptionEditor({
   onChange: (value: string) => void
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null)
+  const pendingCaret = useRef<number | null>(null)
+
+  // Place the caret right after React has written the new value, before the next keystroke.
+  useLayoutEffect(() => {
+    const caret = pendingCaret.current
+    if (caret === null) return
+    pendingCaret.current = null
+    textarea.current?.focus()
+    textarea.current?.setSelectionRange(caret, caret)
+  }, [value])
 
   const insert = (code: string): void => {
     const element = textarea.current
     const start = element?.selectionStart ?? value.length
     const end = element?.selectionEnd ?? value.length
     const token = `${SECTION}${code}`
+    pendingCaret.current = start + token.length
     onChange(value.slice(0, start) + token + value.slice(end))
-    requestAnimationFrame(() => {
-      element?.focus()
-      element?.setSelectionRange(start + token.length, start + token.length)
-    })
   }
+
+  // Keeps focus (and the selection) in the textarea when a toolbar button is pressed.
+  const keepFocus = (event: MouseEvent): void => event.preventDefault()
 
   return (
     <div className="flex flex-col gap-2">
@@ -41,6 +51,7 @@ export function DescriptionEditor({
             type="button"
             title={colour.name}
             aria-label={`Colour: ${colour.name}`}
+            onMouseDown={keepFocus}
             onClick={() => insert(colour.code)}
             className="size-5 rounded-sm border border-black/30"
             style={{ backgroundColor: colour.hex }}
@@ -53,6 +64,7 @@ export function DescriptionEditor({
             type="button"
             title={style.name}
             aria-label={`Style: ${style.name}`}
+            onMouseDown={keepFocus}
             onClick={() => insert(style.code)}
             className="h-5 min-w-5 rounded-sm border border-line bg-raised px-1 text-xs font-semibold text-ink"
           >
