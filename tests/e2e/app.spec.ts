@@ -1,40 +1,22 @@
-import {
-  _electron as electron,
-  expect,
-  test,
-  type ElectronApplication,
-  type Page,
-} from '@playwright/test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { launchApp, type LaunchedApp } from './launch'
 
-// Chromium's OS-level sandbox cannot start as root (containers) or on CI runners whose
-// AppArmor policy blocks user namespaces. The renderer sandbox (webPreferences) stays on.
-const chromiumArgs = process.env.CI || process.getuid?.() === 0 ? ['--no-sandbox'] : []
-
+let launched: LaunchedApp
 let app: ElectronApplication
 let page: Page
-let userDataDir: string
 
 test.beforeAll(async () => {
-  // A fresh profile per run, so saved settings never leak between runs.
-  userDataDir = mkdtempSync(join(tmpdir(), 'rpc-e2e-'))
-  app = await electron.launch({
-    args: [...chromiumArgs, `--user-data-dir=${userDataDir}`, resolve(__dirname, '../..')],
-  })
-  page = await app.firstWindow()
-  await page.waitForLoadState('domcontentloaded')
+  launched = await launchApp()
+  ;({ app, page } = launched)
 })
 
 test.afterAll(async () => {
-  await app?.close()
-  rmSync(userDataDir, { recursive: true, force: true })
+  await launched?.close()
 })
 
 test('starts with a fresh profile', async () => {
   const path = await app.evaluate(({ app }) => app.getPath('userData'))
-  expect(path).toBe(userDataDir)
+  expect(path).toBe(launched.dirs.userData)
 })
 
 test('shows the three-column workspace', async () => {

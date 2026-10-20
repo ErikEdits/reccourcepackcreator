@@ -26,9 +26,11 @@
     "test:e2e": "npm run build && playwright test",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
-    "dist:linux": "npm run build && electron-builder --linux"
+    "dist:linux": "npm run build && electron-builder --linux",
+    "update:versions": "node scripts/update-minecraft-versions.mjs"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {

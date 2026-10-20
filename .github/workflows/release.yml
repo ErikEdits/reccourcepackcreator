@@ -16,10 +16,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+      - name: Check that the tag matches package.json
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version ($expected)"
+            exit 1
+          fi
       - name: Create draft release
-        run: >-
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft
-          --title "Resource Pack Creator $GITHUB_REF_NAME" --generate-notes
+        run: |
+          # Release notes: this version's section of CHANGELOG.md, else GitHub's generated notes.
+          awk -v heading="## [${GITHUB_REF_NAME#v}]" \
+            'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' \
+            CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Resource Pack Creator $GITHUB_REF_NAME" "${notes[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

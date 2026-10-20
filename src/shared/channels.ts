@@ -8,6 +8,13 @@ export const IpcChannel = {
   WindowIsMaximized: 'window:is-maximized',
   AppGetInfo: 'app:get-info',
   ShellOpenExternal: 'shell:open-external',
+  DialogChooseFolder: 'dialog:choose-folder',
+  ProjectDefaultLocation: 'project:default-location',
+  ProjectRecent: 'project:recent',
+  ProjectCreate: 'project:create',
+  ProjectOpen: 'project:open',
+  ProjectClose: 'project:close',
+  ProjectExport: 'project:export',
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]

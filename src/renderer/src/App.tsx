@@ -1,15 +1,21 @@
 import { useState } from 'react'
+import { ExportDialog } from './components/ExportDialog'
+import { NewPackWizard } from './components/NewPackWizard'
 import { EmptyState, Panel } from './components/Panel'
+import { FileList, PackProperties, ProjectOverview } from './components/ProjectViews'
+import { StartScreen } from './components/StartScreen'
 import { StatusBar } from './components/StatusBar'
 import { TitleBar } from './components/TitleBar'
-import { GrassBlockIcon } from './components/GrassBlockIcon'
+import { Toasts } from './components/Toasts'
 import { useApplyTheme } from './hooks/useApplyTheme'
+import { useProject } from './store/project'
 import { useSettings } from './store/settings'
 
 type LeftTab = 'textures' | 'files'
 
 function LeftPanel() {
   const expert = useSettings((state) => state.mode === 'expert')
+  const summary = useProject((state) => state.summary)
   const [tab, setTab] = useState<LeftTab>('textures')
   // The file tree is an expert-mode feature (docs/DECISIONS.md #61).
   const activeTab = expert ? tab : 'textures'
@@ -33,21 +39,30 @@ function LeftPanel() {
     </div>
   )
 
+  let content
+  if (!summary) {
+    content = <EmptyState title="No pack open">Create a new pack or open a pack folder.</EmptyState>
+  } else if (activeTab === 'files') {
+    content = <FileList files={summary.files} />
+  } else {
+    content = (
+      <EmptyState title="No textures yet">
+        Textures you add to this pack will appear here.
+      </EmptyState>
+    )
+  }
+
   return (
     <Panel title="Pack contents" header={tabs} className="border-r border-line bg-panel">
-      {activeTab === 'textures' ? (
-        <EmptyState title="No pack open">
-          Create a new pack or import a .zip to browse its textures.
-        </EmptyState>
-      ) : (
-        <EmptyState title="No pack open">The pack&apos;s files will be listed here.</EmptyState>
-      )}
+      {content}
     </Panel>
   )
 }
 
 export function App() {
   useApplyTheme()
+  const summary = useProject((state) => state.summary)
+  const dialog = useProject((state) => state.dialog)
 
   return (
     <div className="flex h-full flex-col">
@@ -55,19 +70,20 @@ export function App() {
       <main className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_300px]">
         <LeftPanel />
         <Panel title="Editor" className="bg-canvas">
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-            <GrassBlockIcon size={64} />
-            <p className="text-base font-semibold">Start a resource pack</p>
-            <p className="max-w-80 text-xs text-ink-muted">
-              Open or create a pack to start editing its textures.
-            </p>
-          </div>
+          {summary ? <ProjectOverview summary={summary} /> : <StartScreen />}
         </Panel>
         <Panel title="Properties" className="border-l border-line bg-panel">
-          <EmptyState title="Nothing selected">Select a texture to see its properties.</EmptyState>
+          {summary ? (
+            <PackProperties summary={summary} />
+          ) : (
+            <EmptyState title="Nothing selected">Open a pack to see its properties.</EmptyState>
+          )}
         </Panel>
       </main>
       <StatusBar />
+      {dialog === 'new-pack' && <NewPackWizard />}
+      {dialog === 'export' && summary && <ExportDialog summary={summary} />}
+      <Toasts />
     </div>
   )
 }

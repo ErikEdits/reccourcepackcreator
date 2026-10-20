@@ -21,6 +21,17 @@ const api: RendererApi = {
   shell: {
     openExternal: (url) => ipcRenderer.invoke(IpcChannel.ShellOpenExternal, url),
   },
+  dialog: {
+    chooseFolder: (purpose) => ipcRenderer.invoke(IpcChannel.DialogChooseFolder, purpose),
+  },
+  project: {
+    defaultLocation: () => ipcRenderer.invoke(IpcChannel.ProjectDefaultLocation),
+    recent: () => ipcRenderer.invoke(IpcChannel.ProjectRecent),
+    create: (request) => ipcRenderer.invoke(IpcChannel.ProjectCreate, request),
+    open: (dir) => ipcRenderer.invoke(IpcChannel.ProjectOpen, dir),
+    close: () => ipcRenderer.invoke(IpcChannel.ProjectClose),
+    export: (request) => ipcRenderer.invoke(IpcChannel.ProjectExport, request),
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

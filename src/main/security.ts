@@ -1,7 +1,8 @@
 import { app, BrowserWindow, dialog, shell, type Session, type WebContents } from 'electron'
-import { join, relative, isAbsolute } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { classifyExternalLink, isAllowedNetworkUrl } from '../shared/network-policy'
+import { isInside } from './paths'
 
 const rendererDir = join(__dirname, '../renderer')
 
@@ -17,9 +18,7 @@ function parseUrl(raw: string): URL | null {
 }
 
 function isInsideRendererDir(url: URL): boolean {
-  if (url.protocol !== 'file:') return false
-  const rel = relative(rendererDir, fileURLToPath(url))
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+  return url.protocol === 'file:' && isInside(rendererDir, fileURLToPath(url))
 }
 
 /** True if the URL is the app's own UI (the bundled page, or the dev server during development). */

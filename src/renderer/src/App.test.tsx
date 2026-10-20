@@ -23,6 +23,15 @@ function stubApi(): RendererApi {
       })),
     },
     shell: { openExternal: vi.fn(async () => true) },
+    dialog: { chooseFolder: vi.fn(async () => null) },
+    project: {
+      defaultLocation: vi.fn(async () => '/home/test/Documents/Resource Pack Creator'),
+      recent: vi.fn(async () => []),
+      create: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      open: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      close: vi.fn(async () => {}),
+      export: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+    },
   }
 }
 

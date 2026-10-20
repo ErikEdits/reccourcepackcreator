@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useProject } from '../store/project'
 import { useSettings, type ThemePreference, type UiMode } from '../store/settings'
 import { GrassBlockIcon } from './GrassBlockIcon'
 
@@ -91,6 +92,7 @@ function WindowButton({
 
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
+  const packName = useProject((state) => state.summary?.project.name)
 
   useEffect(() => {
     void window.api.window.isMaximized().then(setMaximized)
@@ -103,7 +105,7 @@ export function TitleBar() {
         <GrassBlockIcon />
         <span className="text-sm font-semibold">Resource Pack Creator</span>
       </div>
-      <span className="ml-4 text-xs text-ink-muted">No pack open</span>
+      <span className="ml-4 truncate text-xs text-ink-muted">{packName ?? 'No pack open'}</span>
 
       <div className="app-no-drag ml-auto flex items-center gap-2 pl-2">
         <ModeSwitch />
