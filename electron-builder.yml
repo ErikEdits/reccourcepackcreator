@@ -3,6 +3,8 @@ productName: Resource Pack Creator
 artifactName: ${name}-${version}-${arch}.${ext}
 directories:
   output: dist
+  # Holds icon.png: Electron's default icon for now (docs/DECISIONS.md #107); the MSI target needs a file.
+  buildResources: build
 files:
   - out/**/*
   - package.json
