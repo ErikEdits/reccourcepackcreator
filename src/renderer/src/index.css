@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Ubuntu, 'Noto Sans', sans-serif;
+
+  /* Minecraft accents */
+  --color-grass: #5d9b34;
+  --color-grass-strong: #46802a;
+  --color-dirt: #8a5d3b;
+  --color-danger: #d9403a;
+}
+
+@theme inline {
+  --color-canvas: var(--app-canvas);
+  --color-panel: var(--app-panel);
+  --color-raised: var(--app-raised);
+  --color-line: var(--app-line);
+  --color-ink: var(--app-ink);
+  --color-ink-muted: var(--app-ink-muted);
+}
+
+:root {
+  --app-canvas: #eceee8;
+  --app-panel: #f7f8f4;
+  --app-raised: #ffffff;
+  --app-line: #d5d9cf;
+  --app-ink: #1c2119;
+  --app-ink-muted: #5f6858;
+  color-scheme: light;
+}
+
+.dark {
+  --app-canvas: #121410;
+  --app-panel: #1a1d17;
+  --app-raised: #23271f;
+  --app-line: #30352b;
+  --app-ink: #e5e8e0;
+  --app-ink-muted: #9aa292;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--app-canvas);
+  color: var(--app-ink);
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+/* Lets the custom title bar move the window. */
+@utility app-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+@utility app-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
