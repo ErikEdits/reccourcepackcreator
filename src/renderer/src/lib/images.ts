@@ -1,3 +1,5 @@
+import type { Bitmap } from '../editor/pixels'
+
 export const PACK_ICON_SIZE = 128
 
 /** Encodes a canvas as PNG bytes. */
@@ -72,4 +74,46 @@ export async function imageToTexture(
 /** Object URL for showing PNG bytes in an <img>; revoke it when done. */
 export function pngUrl(bytes: Uint8Array): string {
   return URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'image/png' }))
+}
+
+/** Decodes PNG (or any image) bytes into straight RGBA pixels. */
+export async function decodeImage(bytes: Uint8Array): Promise<Bitmap> {
+  const bitmap = await createImageBitmap(
+    new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'image/png' }),
+    { premultiplyAlpha: 'none', colorSpaceConversion: 'none' },
+  )
+  try {
+    const [, context] = canvasOfSize(bitmap.width, bitmap.height)
+    context.drawImage(bitmap, 0, 0)
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height)
+    return { width: bitmap.width, height: bitmap.height, data }
+  } finally {
+    bitmap.close()
+  }
+}
+
+/** Encodes pixels as PNG bytes. */
+export async function encodePng(bitmap: Bitmap): Promise<Uint8Array<ArrayBuffer>> {
+  const [canvas, context] = canvasOfSize(bitmap.width, bitmap.height)
+  context.putImageData(
+    new ImageData(new Uint8ClampedArray(bitmap.data), bitmap.width, bitmap.height),
+    0,
+    0,
+  )
+  return canvasToPng(canvas)
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  }
+  return btoa(binary)
+}
+
+export function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
 }

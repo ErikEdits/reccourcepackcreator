@@ -100,3 +100,8 @@ export function rowImageUrl(row: TextureRow, version: string, revision: number):
     ? packTextureUrl(row.path, revision)
     : vanillaTextureUrl(row.path, version)
 }
+
+export function statusLabel(row: TextureRow): string {
+  if (row.added) return 'Added by your pack'
+  return row.changed ? 'Changed in your pack' : 'Original'
+}

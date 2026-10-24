@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased]
+
+### New
+
+- **Pixel editor.** Clicking a texture opens it in the built-in editor. Changes are saved
+  automatically; an original texture only becomes part of the pack once you change it, and
+  starts at the pack's resolution.
+  - Tools: pencil, eraser, fill, gradient (smooth or dithered with two colours), colour
+    picker, line, rectangle and ellipse (outlined or filled), selection and move. Left and
+    right mouse button paint with two colours; Alt picks a colour with any painting tool.
+  - Brush size, mirror drawing (left/right, top/bottom), flip and rotate for the selection or
+    the whole layer, copy, cut and paste (as a new layer).
+  - Layers with visibility, opacity, renaming, reordering and merging. They are kept in the
+    project's hidden `.rpc` folder; the pack and its exports only get the combined picture.
+  - Unlimited undo and redo, with a history panel to jump back to any step.
+  - Colour picker with saturation/brightness square, hue, opacity, RGB and hex; the colours
+    of the original texture as a palette; your own palettes, and palette import from `.gpl`,
+    `.pal`, `.hex` and `.txt` files (e.g. from Lospec).
+  - Mouse-wheel zoom around the pointer, pan with Space or the middle mouse button, pixel
+    grid, fit to window. Pens and touch screens work too; pen pressure changes the brush
+    size.
+  - Keyboard shortcuts for every tool and action, changeable in Settings.
+  - Settings: the colour shown behind transparent pixels.
+- "Import image…" and dropping an image onto the editor replace the texture as one step
+  that can be undone.
+
 ## [0.3.0] - 2026-10-24
 
 ### New

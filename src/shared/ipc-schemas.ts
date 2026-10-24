@@ -30,8 +30,17 @@ export const ipcArgs = {
   [IpcChannel.ProjectClose]: z.tuple([]),
   [IpcChannel.ProjectExport]: z.tuple([exportRequestSchema]),
   [IpcChannel.TexturesLoad]: z.tuple([]),
-  [IpcChannel.TexturesReplace]: z.tuple([texturePath, png]),
   [IpcChannel.TexturesRevert]: z.tuple([texturePath]),
+  [IpcChannel.TexturesReadImage]: z.tuple([z.enum(['vanilla', 'pack']), texturePath]),
+  [IpcChannel.TexturesReadLayers]: z.tuple([texturePath]),
+  [IpcChannel.TexturesSaveEdit]: z.tuple([
+    texturePath,
+    png,
+    z
+      .string()
+      .max(MAX_TEXTURE_BYTES * 2)
+      .nullable(),
+  ]),
   [IpcChannel.MinecraftFilesInfo]: z.tuple([]),
   [IpcChannel.MinecraftClearCache]: z.tuple([]),
 } satisfies Record<IpcChannelName, z.ZodTuple>

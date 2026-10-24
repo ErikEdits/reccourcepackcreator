@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useProject } from '../store/project'
 import { useSettings, type ThemePreference, type UiMode } from '../store/settings'
 import { GrassBlockIcon } from './GrassBlockIcon'
+import { flushPendingSaves } from '../store/pending-saves'
 
 const themeLabels: Record<ThemePreference, string> = {
   system: 'System',
@@ -132,7 +133,11 @@ export function TitleBar() {
               <path d="M0.5 0.5h9v9h-9z" />
             )}
           </WindowButton>
-          <WindowButton label="Close" danger onClick={() => void window.api.window.close()}>
+          <WindowButton
+            label="Close"
+            danger
+            onClick={() => void flushPendingSaves().then(() => window.api.window.close())}
+          >
             <path d="M0.5 0.5l9 9M9.5 0.5l-9 9" />
           </WindowButton>
         </div>

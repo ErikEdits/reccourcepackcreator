@@ -9,6 +9,7 @@ import { useToasts } from '../store/toasts'
 import { DescriptionEditor } from './DescriptionEditor'
 import { PackPreview } from './PackPreview'
 import { Button, ErrorText, Field, inputClass, Modal } from './ui'
+import { flushPendingSaves } from '../store/pending-saves'
 
 const STEPS = ['Name', 'Description', 'Version', 'Icon', 'Licence', 'Location'] as const
 type Resolution = (typeof RESOLUTIONS)[number]
@@ -63,6 +64,7 @@ export function NewPackWizard() {
   const create = async (): Promise<void> => {
     setBusy(true)
     setError(null)
+    await flushPendingSaves()
     const result = await window.api.project.create({
       name: name.trim(),
       description,

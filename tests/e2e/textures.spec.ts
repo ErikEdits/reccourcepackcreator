@@ -87,7 +87,7 @@ test('replaces a texture, scaled to the pack resolution', async () => {
   await page.getByRole('button', { name: 'Stone', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Stone' })).toBeVisible()
 
-  await page.getByLabel('Choose replacement image').setInputFiles({
+  await page.getByLabel('Import image').setInputFiles({
     name: 'stone.png',
     mimeType: 'image/png',
     buffer: solidPng(8, 8, [20, 160, 40, 255]),
@@ -112,7 +112,7 @@ test('keeps animations when a strip is dropped onto an animated texture', async 
     return transfer
   }, strip)
   await page
-    .getByLabel('Texture preview')
+    .getByLabel('Texture canvas')
     .locator('xpath=..')
     .dispatchEvent('drop', { dataTransfer })
   await expect(page.getByRole('status').filter({ hasText: 'Replaced “Water Still”' })).toBeVisible()
