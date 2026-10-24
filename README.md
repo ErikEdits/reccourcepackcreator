@@ -5,8 +5,9 @@ models, sounds, fonts and more — for every Minecraft version from 1.6.1 to the
 latest release. Built for beginners (Simple mode) and pack veterans (Expert
 mode) alike, for Windows and Linux.
 
-> **Status:** early preview (v0.1.0). You can create packs with the wizard and
-> export them for every Minecraft version; the editors are being built next. See
+> **Status:** early preview. You can create packs with the wizard, browse and
+> replace every texture of your Minecraft version, and export the pack for every
+> Minecraft version; the editors are being built next. See
 > [CHANGELOG.md](CHANGELOG.md) for what is in each release and
 > [docs/DECISIONS.md](docs/DECISIONS.md) for the full feature scope.
 
@@ -32,16 +33,16 @@ npm install
 npm run dev
 ```
 
-| Command                                   | What it does                                            |
-| ----------------------------------------- | ------------------------------------------------------- |
-| `npm run dev`                             | Start the app with hot reload                           |
-| `npm run build`                           | Build main, preload and renderer into `out/`            |
-| `npm run lint` / `npm run format`         | ESLint / Prettier                                       |
-| `npm run typecheck`                       | TypeScript checks for all processes                     |
-| `npm test`                                | Unit tests (Vitest)                                     |
-| `npm run test:e2e`                        | Build, then drive the real app with Playwright          |
-| `npm run dist:win` / `npm run dist:linux` | Build installers into `dist/`                           |
-| `npm run update:versions`                 | Refresh the Minecraft version table after a new release |
+| Command                                   | What it does                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `npm run dev`                             | Start the app with hot reload                                      |
+| `npm run build`                           | Build main, preload and renderer into `out/`                       |
+| `npm run lint` / `npm run format`         | ESLint / Prettier                                                  |
+| `npm run typecheck`                       | TypeScript checks for all processes                                |
+| `npm test`                                | Unit tests (Vitest); `RPC_LIVE_TESTS=1` also downloads from Mojang |
+| `npm run test:e2e`                        | Build, then drive the real app with Playwright                     |
+| `npm run dist:win` / `npm run dist:linux` | Build installers into `dist/`                                      |
+| `npm run update:versions`                 | Refresh the Minecraft version table after a new release            |
 
 On Linux without a display, run the end-to-end tests with
 `xvfb-run --auto-servernum npm run test:e2e`.

@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, shell, type Session, type WebContents } fro
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { classifyExternalLink, isAllowedNetworkUrl } from '../shared/network-policy'
+import { TEXTURE_PROTOCOL } from '../shared/textures'
 import { isInside } from './paths'
 
 const rendererDir = join(__dirname, '../renderer')
@@ -35,6 +36,7 @@ function isPermittedRequest(raw: string): boolean {
   switch (url.protocol) {
     case 'data:':
     case 'blob:':
+    case `${TEXTURE_PROTOCOL}:`:
       return true
     case 'devtools:':
       return !app.isPackaged

@@ -1,8 +1,8 @@
 // Reading, creating and exporting pack folders. Plain Node.js, no Electron, so it can be unit-tested.
 
 import { strToU8, zipSync } from 'fflate'
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
-import { basename, join, relative, sep } from 'node:path'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import { planExport } from '../shared/export-plan'
 import { sanitizeFileName } from '../shared/file-names'
 import { DEFAULT_LICENSE } from '../shared/licenses'
@@ -24,6 +24,7 @@ import {
   type ProjectFile,
   type ProjectSummary,
 } from '../shared/project'
+import { isTexturePath, PACK_TEXTURE_PREFIX } from '../shared/textures'
 
 /** An expected problem whose message can be shown to the user as is. */
 export class PackError extends Error {}
@@ -178,4 +179,35 @@ export async function exportPack(
     await writeFile(join(destination, unit.fileName), zip)
   }
   return { directory: destination, files: units.map((unit) => unit.fileName) }
+}
+
+/** Where a texture lives inside the pack; rejects paths that could leave the folder. */
+export function packTextureFile(dir: string, path: string): string {
+  if (!isTexturePath(path)) throw new PackError('This is not a valid texture path.')
+  return join(dir, ...PACK_TEXTURE_PREFIX.split('/').filter(Boolean), ...path.split('/'))
+}
+
+/**
+ * Writes a texture into the pack. `animation` is the .png.mcmeta to write next to it,
+ * 'keep' to leave an existing one alone, or null to remove it.
+ */
+export async function writePackTexture(
+  dir: string,
+  path: string,
+  png: Uint8Array,
+  animation: Uint8Array | 'keep' | null,
+): Promise<void> {
+  if (!pngSize(png)) throw new PackError('The new texture is not a PNG image.')
+  const file = packTextureFile(dir, path)
+  await mkdir(dirname(file), { recursive: true })
+  await writeFile(file, png)
+  if (animation === null) await rm(`${file}.mcmeta`, { force: true })
+  else if (animation !== 'keep') await writeFile(`${file}.mcmeta`, animation)
+}
+
+/** Removes the pack's version of a texture, so Minecraft falls back to the original. */
+export async function removePackTexture(dir: string, path: string): Promise<void> {
+  const file = packTextureFile(dir, path)
+  await rm(file, { force: true })
+  await rm(`${file}.mcmeta`, { force: true })
 }

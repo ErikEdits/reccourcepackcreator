@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0] - 2026-10-24
+
+### New
+
+- **Texture list:** all textures of the pack's Minecraft version, as a grid or a list, with
+  search, category and colour filters and a "changed only" switch. Textures your pack changes
+  are marked, and the status bar counts them ("12 / 2,512 textures changed").
+- **Original textures** come from your Minecraft installation (`.minecraft`) when that version
+  is installed, otherwise they are downloaded once from Mojang, checked against Mojang's SHA-1
+  checksums and kept in a cache. Settings show the cache size and can delete it. The game's
+  textures are only used as a reference and never copied into packs or exports.
+- **Replace textures** by dropping an image onto the preview or choosing a file. Images are
+  scaled with hard pixel edges to the pack's resolution; animation strips stay animated.
+  "Revert to original" removes your version again.
+- Properties of the selected texture: file, category, size, frames, colour, the original for
+  comparison and a link to the Minecraft Wiki.
+
 ## [0.1.0] - 2026-10-20
 
 First preview release for Windows and Linux.

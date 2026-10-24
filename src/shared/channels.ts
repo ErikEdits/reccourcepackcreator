@@ -15,6 +15,11 @@ export const IpcChannel = {
   ProjectOpen: 'project:open',
   ProjectClose: 'project:close',
   ProjectExport: 'project:export',
+  TexturesLoad: 'textures:load',
+  TexturesReplace: 'textures:replace',
+  TexturesRevert: 'textures:revert',
+  MinecraftFilesInfo: 'minecraft:files-info',
+  MinecraftClearCache: 'minecraft:clear-cache',
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]
@@ -22,4 +27,5 @@ export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]
 /** Events pushed from the main process to the renderer. */
 export const IpcEvent = {
   WindowMaximizedChanged: 'window:maximized-changed',
+  TexturesProgress: 'textures:progress',
 } as const

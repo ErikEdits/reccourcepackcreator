@@ -1,9 +1,14 @@
 import { z } from 'zod'
 import { IpcChannel, type IpcChannelName } from './channels'
 import { exportRequestSchema, newPackRequestSchema } from './project'
+import { isTexturePath } from './textures'
 
 const folderPurpose = z.enum(['project-location', 'open-project', 'export-destination'])
 const path = z.string().min(1).max(4096)
+const texturePath = z.string().max(512).refine(isTexturePath)
+/** Upper bound for one texture image sent from the UI. */
+const MAX_TEXTURE_BYTES = 64 * 1024 * 1024
+const png = z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= MAX_TEXTURE_BYTES)
 
 /**
  * Argument schemas for every invokable channel. The main process rejects any
@@ -24,6 +29,11 @@ export const ipcArgs = {
   [IpcChannel.ProjectOpen]: z.tuple([path]),
   [IpcChannel.ProjectClose]: z.tuple([]),
   [IpcChannel.ProjectExport]: z.tuple([exportRequestSchema]),
+  [IpcChannel.TexturesLoad]: z.tuple([]),
+  [IpcChannel.TexturesReplace]: z.tuple([texturePath, png]),
+  [IpcChannel.TexturesRevert]: z.tuple([texturePath]),
+  [IpcChannel.MinecraftFilesInfo]: z.tuple([]),
+  [IpcChannel.MinecraftClearCache]: z.tuple([]),
 } satisfies Record<IpcChannelName, z.ZodTuple>
 
 export type IpcArgs<C extends IpcChannelName> = z.infer<(typeof ipcArgs)[C]>

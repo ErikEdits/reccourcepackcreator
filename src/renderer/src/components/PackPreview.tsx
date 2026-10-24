@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { parseFormattedText, type TextSegment } from '../../../shared/text-format'
-import { pngUrl } from '../lib/pack-icon'
+import { pngUrl } from '../lib/images'
 import { GrassBlockIcon } from './GrassBlockIcon'
 
 const OBFUSCATED_CHARS = '!#$%&*+-0123456789<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ'

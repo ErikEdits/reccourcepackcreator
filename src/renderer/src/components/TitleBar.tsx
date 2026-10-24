@@ -93,6 +93,7 @@ function WindowButton({
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
   const packName = useProject((state) => state.summary?.project.name)
+  const setDialog = useProject((state) => state.setDialog)
 
   useEffect(() => {
     void window.api.window.isMaximized().then(setMaximized)
@@ -108,6 +109,13 @@ export function TitleBar() {
       <span className="ml-4 truncate text-xs text-ink-muted">{packName ?? 'No pack open'}</span>
 
       <div className="app-no-drag ml-auto flex items-center gap-2 pl-2">
+        <button
+          type="button"
+          onClick={() => setDialog('settings')}
+          className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-muted hover:text-ink"
+        >
+          Settings
+        </button>
         <ModeSwitch />
         <ThemeButton />
         <div className="flex">

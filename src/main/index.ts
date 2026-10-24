@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { IpcEvent } from '../shared/channels'
 import { registerIpcHandlers } from './ipc'
 import { applySessionSecurity, devServerUrl, hardenWebContents } from './security'
+import { handleTextureProtocol, registerTextureScheme } from './textures'
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -46,9 +47,11 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.on('web-contents-created', (_event, contents) => hardenWebContents(contents))
+  registerTextureScheme()
 
   void app.whenReady().then(() => {
     applySessionSecurity(session.defaultSession)
+    handleTextureProtocol()
     registerIpcHandlers()
     createMainWindow()
   })

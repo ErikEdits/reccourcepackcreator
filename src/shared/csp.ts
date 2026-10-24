@@ -3,7 +3,8 @@
 
 const common = {
   'default-src': ["'none'"],
-  'img-src': ["'self'", 'data:', 'blob:'],
+  // rpc-texture: serves game and pack textures (src/main/textures.ts).
+  'img-src': ["'self'", 'data:', 'blob:', 'rpc-texture:'],
   'font-src': ["'self'", 'data:'],
   'media-src': ["'self'", 'data:', 'blob:'],
   'worker-src': ["'self'", 'blob:'],

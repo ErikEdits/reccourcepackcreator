@@ -12,6 +12,8 @@ import {
   PackError,
   pngSize,
   readPack,
+  removePackTexture,
+  writePackTexture,
 } from './pack-io'
 import { isInside } from './paths'
 
@@ -176,5 +178,42 @@ describe('isInside', () => {
   it('rejects siblings and escapes', () => {
     expect(isInside('/a/b', '/a/bc')).toBe(false)
     expect(isInside('/a/b', '/a/b/../c')).toBe(false)
+  })
+})
+
+describe('pack textures', () => {
+  const stone = (dir: string) => join(dir, 'assets', 'minecraft', 'textures', 'block', 'stone.png')
+
+  it('writes a texture into the right folder and lists it', async () => {
+    const dir = await createPackFolder(request())
+    await writePackTexture(dir, 'block/stone.png', PNG, null)
+    expect(new Uint8Array(await readFile(stone(dir)))).toEqual(PNG)
+    expect((await readPack(dir)).files).toContain('assets/minecraft/textures/block/stone.png')
+  })
+
+  it('writes, keeps or removes the animation file as asked', async () => {
+    const dir = await createPackFolder(request())
+    const meta = strToU8('{"animation":{}}')
+    await writePackTexture(dir, 'block/stone.png', PNG, meta)
+    expect(await readFile(`${stone(dir)}.mcmeta`, 'utf8')).toBe('{"animation":{}}')
+    await writePackTexture(dir, 'block/stone.png', PNG, 'keep')
+    expect(await readFile(`${stone(dir)}.mcmeta`, 'utf8')).toBe('{"animation":{}}')
+    await writePackTexture(dir, 'block/stone.png', PNG, null)
+    await expect(readFile(`${stone(dir)}.mcmeta`)).rejects.toThrow()
+  })
+
+  it('refuses paths outside the textures folder and non-PNG data', async () => {
+    const dir = await createPackFolder(request())
+    await expect(writePackTexture(dir, '../../pack.png', PNG, null)).rejects.toThrow(PackError)
+    await expect(writePackTexture(dir, 'block/stone.png', strToU8('nope'), null)).rejects.toThrow(
+      PackError,
+    )
+  })
+
+  it('removes a texture together with its animation file', async () => {
+    const dir = await createPackFolder(request())
+    await writePackTexture(dir, 'block/stone.png', PNG, strToU8('{}'))
+    await removePackTexture(dir, 'block/stone.png')
+    expect((await readPack(dir)).files).toEqual(['pack.mcmeta', 'pack.png'])
   })
 })
