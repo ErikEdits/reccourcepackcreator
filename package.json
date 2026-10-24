@@ -27,7 +27,8 @@
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "dist:linux": "npm run build && electron-builder --linux",
-    "update:versions": "node scripts/update-minecraft-versions.mjs"
+    "update:versions": "node scripts/update-minecraft-versions.mjs",
+    "update:renames": "node scripts/generate-texture-renames.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",

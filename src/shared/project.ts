@@ -72,6 +72,8 @@ export interface RecentProject {
 export interface ExportResult {
   directory: string
   files: string[]
+  /** Pack files that got another name in at least one ZIP, to match its Minecraft version. */
+  renamedFiles: number
 }
 
 export type FolderPurpose = 'project-location' | 'open-project' | 'export-destination'

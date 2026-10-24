@@ -24,6 +24,7 @@ import {
   type ProjectFile,
   type ProjectSummary,
 } from '../shared/project'
+import { translatePackPath } from '../shared/texture-renames'
 import { isTexturePath, PACK_TEXTURE_PREFIX } from '../shared/textures'
 
 /** An expected problem whose message can be shown to the user as is. */
@@ -169,16 +170,43 @@ export async function exportPack(
   delete otherSections.pack
 
   await mkdir(destination, { recursive: true })
+  const renamed = new Set<string>()
   for (const unit of units) {
-    const mcmeta = buildPackMcmeta(
-      summary.project.description,
-      unit.versions[0].format,
-      otherSections,
-    )
-    const zip = zipSync({ ...contents, 'pack.mcmeta': strToU8(mcmeta) }, { level: 6 })
+    const target = unit.versions[0]
+    const files = renameForVersion(contents, summary.project.minecraftVersion, target.id)
+    for (const path of files.renamed) renamed.add(path)
+    const mcmeta = buildPackMcmeta(summary.project.description, target.format, otherSections)
+    const zip = zipSync({ ...files.contents, 'pack.mcmeta': strToU8(mcmeta) }, { level: 6 })
     await writeFile(join(destination, unit.fileName), zip)
   }
-  return { directory: destination, files: units.map((unit) => unit.fileName) }
+  return {
+    directory: destination,
+    files: units.map((unit) => unit.fileName),
+    renamedFiles: renamed.size,
+  }
+}
+
+/**
+ * The pack's files under the texture names of another Minecraft version. If the pack has a
+ * file under both the old and the new name, the one already at the target name wins.
+ */
+export function renameForVersion(
+  contents: Readonly<Record<string, Uint8Array>>,
+  from: string,
+  to: string,
+): { contents: Record<string, Uint8Array>; renamed: string[] } {
+  const result: Record<string, Uint8Array> = {}
+  const renamed: string[] = []
+  for (const [path, bytes] of Object.entries(contents)) {
+    const target = translatePackPath(path, from, to)
+    if (target === path) {
+      result[path] = bytes
+    } else if (!(target in contents)) {
+      result[target] = bytes
+      renamed.push(path)
+    }
+  }
+  return { contents: result, renamed }
 }
 
 /** Where a texture lives inside the pack; rejects paths that could leave the folder. */

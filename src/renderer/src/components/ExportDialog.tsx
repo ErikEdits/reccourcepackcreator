@@ -57,11 +57,15 @@ export function ExportDialog({ summary }: { summary: ProjectSummary }) {
     })
     setBusy(false)
     if (!result.ok) return setError(result.error)
-    const count = result.value.files.length
+    const { files, directory, renamedFiles } = result.value
+    const renamedNote =
+      renamedFiles > 0
+        ? ` ${renamedFiles} ${renamedFiles === 1 ? 'texture was' : 'textures were'} renamed to match older or newer versions.`
+        : ''
     playChime()
     pushToast(
       'success',
-      `Exported ${count} ZIP ${count === 1 ? 'file' : 'files'} to ${result.value.directory}.`,
+      `Exported ${files.length} ZIP ${files.length === 1 ? 'file' : 'files'} to ${directory}.${renamedNote}`,
     )
     setDialog(null)
   }
@@ -156,8 +160,12 @@ export function ExportDialog({ summary }: { summary: ProjectSummary }) {
               onChange={(event) => setCombineSameFormat(event.target.checked)}
               className="accent-grass"
             />
-            One ZIP per pack format instead of one per version (fewer, identical files)
+            One ZIP per pack format instead of one per version (fewer files)
           </label>
+          <p className="text-xs text-ink-muted">
+            Texture files are renamed to what each Minecraft version expects, e.g. block/ from 1.13
+            on and blocks/ before.
+          </p>
         </section>
 
         <Field label="Save to">

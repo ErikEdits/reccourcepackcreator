@@ -1,0 +1,57 @@
+{
+  "$comment": "Renames the generator cannot detect because the texture was redrawn when it got its new name. Keyed by the version that introduced the new name. The generator checks that both files exist and have the same size.",
+  "1.13": {
+    "blocks/beetroots_stage_0.png": "block/beetroots_stage0.png",
+    "blocks/beetroots_stage_1.png": "block/beetroots_stage1.png",
+    "blocks/beetroots_stage_2.png": "block/beetroots_stage2.png",
+    "blocks/carrots_stage_0.png": "block/carrots_stage0.png",
+    "blocks/carrots_stage_1.png": "block/carrots_stage1.png",
+    "blocks/carrots_stage_2.png": "block/carrots_stage2.png",
+    "blocks/potatoes_stage_0.png": "block/potatoes_stage0.png",
+    "blocks/potatoes_stage_1.png": "block/potatoes_stage1.png",
+    "blocks/potatoes_stage_2.png": "block/potatoes_stage2.png",
+    "blocks/leaves_big_oak.png": "block/dark_oak_leaves.png",
+    "blocks/leaves_birch.png": "block/birch_leaves.png",
+    "blocks/leaves_oak.png": "block/oak_leaves.png",
+    "blocks/melon_stem_connected.png": "block/attached_melon_stem.png",
+    "blocks/melon_stem_disconnected.png": "block/melon_stem.png",
+    "blocks/pumpkin_stem_connected.png": "block/attached_pumpkin_stem.png",
+    "blocks/pumpkin_stem_disconnected.png": "block/pumpkin_stem.png",
+    "blocks/noteblock.png": "block/note_block.png",
+    "blocks/observer_back_lit.png": "block/observer_back_on.png",
+    "blocks/shulker_top_purple.png": "block/purple_shulker_box.png",
+    "entity/bed/silver.png": "entity/bed/light_gray.png",
+    "items/fish_clownfish_raw.png": "item/tropical_fish.png",
+    "items/fish_cod_cooked.png": "item/cooked_cod.png",
+    "items/fish_cod_raw.png": "item/cod.png",
+    "items/fish_pufferfish_raw.png": "item/pufferfish.png",
+    "items/fish_salmon_cooked.png": "item/cooked_salmon.png",
+    "items/fish_salmon_raw.png": "item/salmon.png",
+    "items/potion_bottle_drinkable.png": "item/potion.png",
+    "items/potion_bottle_empty.png": "item/glass_bottle.png"
+  },
+  "1.14": {
+    "item/cactus_green.png": "item/green_dye.png",
+    "item/dandelion_yellow.png": "item/yellow_dye.png",
+    "item/rose_red.png": "item/red_dye.png",
+    "item/sign.png": "item/oak_sign.png",
+    "entity/cow/mooshroom.png": "entity/cow/red_mooshroom.png",
+    "block/stone_slab_side.png": "block/smooth_stone_slab_side.png",
+    "block/stone_slab_top.png": "block/smooth_stone.png"
+  },
+  "1.19.3": {
+    "entity/steve.png": "entity/player/wide/steve.png",
+    "entity/alex.png": "entity/player/slim/alex.png"
+  },
+  "1.20": {
+    "entity/decorated_pot/pottery_pattern_arms_up.png": "entity/decorated_pot/arms_up_pottery_pattern.png",
+    "entity/decorated_pot/pottery_pattern_prize.png": "entity/decorated_pot/prize_pottery_pattern.png",
+    "entity/decorated_pot/pottery_pattern_skull.png": "entity/decorated_pot/skull_pottery_pattern.png",
+    "item/pottery_shard_arms_up.png": "item/arms_up_pottery_sherd.png",
+    "item/pottery_shard_prize.png": "item/prize_pottery_sherd.png",
+    "item/pottery_shard_skull.png": "item/skull_pottery_sherd.png"
+  },
+  "1.21.5": {
+    "entity/sheep/sheep_fur.png": "entity/sheep/sheep_wool.png"
+  }
+}

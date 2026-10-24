@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { unzipSync } from 'fflate'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { groupByFormat, MINECRAFT_VERSIONS } from '../../src/shared/minecraft-versions'
+import { planExport } from '../../src/shared/export-plan'
+import { MINECRAFT_VERSIONS } from '../../src/shared/minecraft-versions'
 import { launchApp, type LaunchedApp } from './launch'
 
 // Smallest valid 1×1 PNG; the app scales it to a 128×128 pack.png.
@@ -75,16 +76,27 @@ test('exports one ZIP per pack format for all versions', async () => {
   const dialog = page.getByRole('dialog', { name: 'Export pack' })
   await dialog.getByRole('button', { name: 'All versions' }).click()
   await dialog.getByLabel(/One ZIP per pack format/).check()
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click()
+  await dialog
+    .getByRole('button', { name: 'Export', exact: true })
+    // A short timeout: nothing (like a message) may cover the button.
+    .click({ timeout: 2000 })
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('status').filter({ hasText: 'Exported' })).toBeVisible()
 
+  const expected = planExport(
+    { name: 'E2E Pack', packVersion: '1.0.0' },
+    {
+      versions: MINECRAFT_VERSIONS.map((version) => version.id),
+      combineSameFormat: true,
+      fileNameTemplate: '{name}_v{packVersion}_MC{mc}',
+    },
+  ).units.map((unit) => unit.fileName)
   const files = readdirSync(launched.dirs.downloads)
-  expect(files).toHaveLength(groupByFormat(MINECRAFT_VERSIONS).length)
-  expect(files).toContain('E2E Pack_v1.0.0_MC1.6.1-1.8.9.zip')
+  expect(files.sort()).toEqual(expected.sort())
+  expect(files).toContain('E2E Pack_v1.0.0_MC1.6.1-1.6.4.zip')
 
   const oldest = unzipSync(
-    readFileSync(join(launched.dirs.downloads, 'E2E Pack_v1.0.0_MC1.6.1-1.8.9.zip')),
+    readFileSync(join(launched.dirs.downloads, 'E2E Pack_v1.0.0_MC1.6.1-1.6.4.zip')),
   )
   expect(Object.keys(oldest).sort()).toEqual(['pack.mcmeta', 'pack.png'])
   expect(JSON.parse(Buffer.from(oldest['pack.mcmeta']).toString()).pack.pack_format).toBe(1)

@@ -4,8 +4,13 @@ export function Toasts() {
   const toasts = useToasts((state) => state.toasts)
   const dismiss = useToasts((state) => state.dismiss)
 
+  // Bottom left, away from the dialogs' buttons, and click-through apart from the dismiss
+  // button, so a message never blocks what is underneath it.
   return (
-    <div aria-live="polite" className="fixed right-4 bottom-10 z-50 flex w-80 flex-col gap-2">
+    <div
+      aria-live="polite"
+      className="pointer-events-none fixed bottom-10 left-4 z-50 flex w-80 flex-col gap-2"
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -21,7 +26,7 @@ export function Toasts() {
             type="button"
             aria-label="Dismiss"
             onClick={() => dismiss(toast.id)}
-            className="text-ink-muted hover:text-ink"
+            className="pointer-events-auto text-ink-muted hover:text-ink"
           >
             ×
           </button>
