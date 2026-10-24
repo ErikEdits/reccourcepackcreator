@@ -11,6 +11,7 @@ import { playChime } from '../lib/chime'
 import { useProject } from '../store/project'
 import { useToasts } from '../store/toasts'
 import { Button, ErrorText, Field, inputClass, Modal } from './ui'
+import { flushPendingSaves } from '../store/pending-saves'
 
 const groupsNewestFirst = groupByFormat(MINECRAFT_VERSIONS).reverse()
 const ALL_IDS = MINECRAFT_VERSIONS.map((version) => version.id)
@@ -49,6 +50,8 @@ export function ExportDialog({ summary }: { summary: ProjectSummary }) {
   const runExport = async (): Promise<void> => {
     setBusy(true)
     setError(null)
+    // The texture being edited must be in the pack before it is zipped.
+    await flushPendingSaves()
     const result = await window.api.project.export({
       versions,
       combineSameFormat,

@@ -5,9 +5,10 @@ models, sounds, fonts and more — for every Minecraft version from 1.6.1 to the
 latest release. Built for beginners (Simple mode) and pack veterans (Expert
 mode) alike, for Windows and Linux.
 
-> **Status:** early preview. You can create packs with the wizard, browse and
-> replace every texture of your Minecraft version, and export the pack for every
-> Minecraft version; the editors are being built next. See
+> **Status:** early preview. You can create packs with the wizard, browse every
+> texture of your Minecraft version, paint them in the built-in pixel editor and
+> export the pack for every Minecraft version; 3D preview, animation and the other
+> editors come next. See
 > [CHANGELOG.md](CHANGELOG.md) for what is in each release and
 > [docs/DECISIONS.md](docs/DECISIONS.md) for the full feature scope.
 
@@ -54,7 +55,7 @@ On Linux without a display, run the end-to-end tests with
 src/
   main/       Electron main process: window, IPC handlers, security rules
   preload/    The only bridge between UI and main process (window.api)
-  renderer/   React UI (Tailwind CSS, Zustand)
+  renderer/   React UI (Tailwind CSS, Zustand); src/editor/ is the pixel editor's model
   shared/     Code used by several processes: IPC channels and schemas, CSP, network policy
 tests/e2e/    Playwright tests against the built app
 docs/         Product and security decisions

@@ -1,5 +1,5 @@
 import { strToU8, unzipSync, zipSync } from 'fflate'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,9 +11,11 @@ import {
   exportPack,
   PackError,
   pngSize,
+  readLayersFile,
   readPack,
   removePackTexture,
   renameForVersion,
+  writeLayersFile,
   writePackTexture,
 } from './pack-io'
 import { isInside } from './paths'
@@ -262,5 +264,46 @@ describe('exporting for other versions', () => {
     )
     expect(result.contents).toEqual({ 'assets/minecraft/textures/blocks/planks_oak.png': own })
     expect(result.renamed).toEqual([])
+  })
+})
+
+describe('editor layers', () => {
+  const layers = JSON.stringify({
+    version: 1,
+    width: 1,
+    height: 1,
+    layers: [
+      { name: 'Layer 1', visible: true, opacity: 1, png: Buffer.from(PNG).toString('base64') },
+    ],
+  })
+
+  it('keeps layers in .rpc, out of the pack and its exports', async () => {
+    const dir = await createPackFolder(request())
+    await writePackTexture(dir, 'block/stone.png', PNG, null)
+    await writeLayersFile(dir, 'block/stone.png', layers)
+    expect(await readLayersFile(dir, 'block/stone.png')).toBe(layers)
+    expect(existsSync(join(dir, '.rpc', 'layers', 'block', 'stone.png.json'))).toBe(true)
+
+    const summary = await readPack(dir)
+    expect(summary.files).not.toContain('.rpc/layers/block/stone.png.json')
+    const out = join(root, 'out')
+    await exportPack(
+      summary,
+      { versions: ['1.21.4'], combineSameFormat: false, destination: out, fileNameTemplate: 'x' },
+      out,
+    )
+    const zip = unzipSync(await readFile(join(out, 'x.zip')))
+    expect(Object.keys(zip).some((name) => name.includes('.rpc'))).toBe(false)
+  })
+
+  it('rejects malformed layers and removes them with the texture', async () => {
+    const dir = await createPackFolder(request())
+    await expect(writeLayersFile(dir, 'block/stone.png', '{"version":2}')).rejects.toThrow(
+      PackError,
+    )
+    await writePackTexture(dir, 'block/stone.png', PNG, null)
+    await writeLayersFile(dir, 'block/stone.png', layers)
+    await removePackTexture(dir, 'block/stone.png')
+    expect(await readLayersFile(dir, 'block/stone.png')).toBeNull()
   })
 })

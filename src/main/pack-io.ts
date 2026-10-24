@@ -24,6 +24,7 @@ import {
   type ProjectFile,
   type ProjectSummary,
 } from '../shared/project'
+import { layersFileSchema } from '../shared/layers-file'
 import { translatePackPath } from '../shared/texture-renames'
 import { isTexturePath, PACK_TEXTURE_PREFIX } from '../shared/textures'
 
@@ -238,4 +239,32 @@ export async function removePackTexture(dir: string, path: string): Promise<void
   const file = packTextureFile(dir, path)
   await rm(file, { force: true })
   await rm(`${file}.mcmeta`, { force: true })
+  await writeLayersFile(dir, path, null)
+}
+
+/** Where the editor keeps a texture's layers: .rpc/layers/<path>.json, outside every export. */
+export function layersFile(dir: string, path: string): string {
+  if (!isTexturePath(path)) throw new PackError('This is not a valid texture path.')
+  return `${join(dir, PROJECT_DIR, 'layers', ...path.split('/'))}.json`
+}
+
+export async function readLayersFile(dir: string, path: string): Promise<string | null> {
+  return (await readOptional(layersFile(dir, path)))?.toString('utf8') ?? null
+}
+
+/** Writes a texture's layers, or removes them (null) when the PNG alone describes it. */
+export async function writeLayersFile(
+  dir: string,
+  path: string,
+  json: string | null,
+): Promise<void> {
+  const file = layersFile(dir, path)
+  if (json === null) {
+    await rm(file, { force: true })
+    return
+  }
+  const parsed = layersFileSchema.safeParse(JSON.parse(json))
+  if (!parsed.success) throw new PackError('The layers could not be saved.')
+  await mkdir(dirname(file), { recursive: true })
+  await writeFile(file, json)
 }

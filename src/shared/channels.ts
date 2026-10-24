@@ -16,8 +16,10 @@ export const IpcChannel = {
   ProjectClose: 'project:close',
   ProjectExport: 'project:export',
   TexturesLoad: 'textures:load',
-  TexturesReplace: 'textures:replace',
   TexturesRevert: 'textures:revert',
+  TexturesReadImage: 'textures:read-image',
+  TexturesReadLayers: 'textures:read-layers',
+  TexturesSaveEdit: 'textures:save-edit',
   MinecraftFilesInfo: 'minecraft:files-info',
   MinecraftClearCache: 'minecraft:clear-cache',
 } as const

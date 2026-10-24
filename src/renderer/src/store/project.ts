@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ProjectSummary, RecentProject } from '../../../shared/project'
+import { flushPendingSaves } from './pending-saves'
 
 type Dialog = 'new-pack' | 'export' | 'settings' | null
 
@@ -23,12 +24,14 @@ export const useProject = create<ProjectState>()((set, get) => ({
   setDialog: (dialog) => set({ dialog }),
   loadRecent: async () => set({ recent: await window.api.project.recent() }),
   openFolder: async (dir) => {
+    await flushPendingSaves()
     const result = await window.api.project.open(dir)
     if (!result.ok) return result.error
     set({ summary: result.value })
     return null
   },
   closeProject: async () => {
+    await flushPendingSaves()
     await window.api.project.close()
     set({ summary: null, dialog: null })
     await get().loadRecent()

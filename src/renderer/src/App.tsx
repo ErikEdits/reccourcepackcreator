@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { EditorSidebar } from './components/editor/EditorSidebar'
+import { EditorView } from './components/editor/EditorView'
 import { ExportDialog } from './components/ExportDialog'
 import { NewPackWizard } from './components/NewPackWizard'
 import { EmptyState, Panel } from './components/Panel'
@@ -7,7 +9,6 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { StartScreen } from './components/StartScreen'
 import { StatusBar } from './components/StatusBar'
 import { TextureBrowser } from './components/TextureBrowser'
-import { TextureDetail, TextureProperties } from './components/TextureViews'
 import { TitleBar } from './components/TitleBar'
 import { Toasts } from './components/Toasts'
 import { useApplyTheme } from './hooks/useApplyTheme'
@@ -90,8 +91,8 @@ export function App() {
       <EmptyState title="Nothing selected">Open a pack to see its properties.</EmptyState>
     )
   } else if (selectedRow) {
-    centre = <TextureDetail row={selectedRow} />
-    properties = <TextureProperties row={selectedRow} />
+    centre = <EditorView row={selectedRow} />
+    properties = <EditorSidebar row={selectedRow} />
   } else {
     centre = <ProjectOverview summary={summary} />
     properties = <PackProperties summary={summary} />

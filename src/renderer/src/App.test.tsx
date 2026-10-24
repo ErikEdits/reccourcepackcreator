@@ -34,8 +34,10 @@ function stubApi(): RendererApi {
     },
     textures: {
       load: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
-      replace: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
       revert: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      readImage: vi.fn(async () => null),
+      readLayers: vi.fn(async () => null),
+      saveEdit: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
       onProgress: vi.fn(() => () => {}),
     },
     minecraft: {
@@ -104,6 +106,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(window.api.window.minimize).toHaveBeenCalledOnce()
     expect(window.api.window.toggleMaximize).toHaveBeenCalledOnce()
-    expect(window.api.window.close).toHaveBeenCalledOnce()
+    // Closing waits for the editor to finish saving.
+    await vi.waitFor(() => expect(window.api.window.close).toHaveBeenCalledOnce())
   })
 })

@@ -11,7 +11,7 @@ import {
   type TextureIndex,
   type TextureProgress,
 } from '../shared/textures'
-import { packTextureFile, PackError, pngSize } from './pack-io'
+import { packTextureFile, PackError, pngSize, readLayersFile, writeLayersFile } from './pack-io'
 import { currentProject, replaceTexture, revertTexture } from './projects'
 import { loadVanilla, vanillaFile } from './vanilla/vanilla'
 
@@ -79,6 +79,7 @@ export function loadTexturesForCurrentProject(sender: WebContents): Promise<Text
 export async function replaceTextureInCurrentProject(
   path: string,
   png: Uint8Array,
+  layers: string | null = null,
 ): Promise<ProjectSummary> {
   const project = requireProject()
   const size = pngSize(png)
@@ -93,9 +94,27 @@ export async function replaceTextureInCurrentProject(
       : ((await vanillaFile(project.project.minecraftVersion, `${path}.mcmeta`)) ??
         new TextEncoder().encode('{\n  "animation": {}\n}\n'))
   }
+  // Layers first: if they are invalid, nothing is written.
+  await writeLayersFile(project.dir, path, layers)
   return replaceTexture(path, png, animation)
 }
 
 export function revertTextureInCurrentProject(path: string): Promise<ProjectSummary> {
   return revertTexture(path)
+}
+
+/** PNG bytes of a vanilla texture (the open pack's version) or of the pack's own version. */
+export async function readTextureImage(
+  source: 'vanilla' | 'pack',
+  path: string,
+): Promise<Uint8Array | null> {
+  const project = requireProject()
+  return source === 'vanilla'
+    ? vanillaFile(project.project.minecraftVersion, path)
+    : readPackTexture(path)
+}
+
+/** The editor's saved layers of a texture, if it has any. */
+export function readTextureLayers(path: string): Promise<string | null> {
+  return readLayersFile(requireProject().dir, path)
 }

@@ -60,10 +60,14 @@ export interface RendererApi {
   textures: {
     /** Vanilla textures of the open pack's Minecraft version (may download the game files). */
     load(): Promise<Result<TextureIndex>>
-    /** Writes a PNG over a texture in the open pack. */
-    replace(path: string, png: Uint8Array): Promise<Result<ProjectSummary>>
-    /** Removes the pack's version of a texture. */
+    /** Removes the pack's version of a texture (and its editor layers). */
     revert(path: string): Promise<Result<ProjectSummary>>
+    /** PNG bytes of the original texture or of the pack's version, null if there is none. */
+    readImage(source: 'vanilla' | 'pack', path: string): Promise<Uint8Array | null>
+    /** The editor's saved layers (a layers-file JSON), null if the texture has none. */
+    readLayers(path: string): Promise<string | null>
+    /** Saves an edited texture: the flattened PNG into the pack, the layers into .rpc. */
+    saveEdit(path: string, png: Uint8Array, layers: string | null): Promise<Result<ProjectSummary>>
     /** Returns a function that removes the listener. */
     onProgress(listener: (progress: TextureProgress) => void): () => void
   }

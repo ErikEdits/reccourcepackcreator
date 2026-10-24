@@ -35,8 +35,11 @@ const api: RendererApi = {
   },
   textures: {
     load: () => ipcRenderer.invoke(IpcChannel.TexturesLoad),
-    replace: (path, png) => ipcRenderer.invoke(IpcChannel.TexturesReplace, path, png),
     revert: (path) => ipcRenderer.invoke(IpcChannel.TexturesRevert, path),
+    readImage: (source, path) => ipcRenderer.invoke(IpcChannel.TexturesReadImage, source, path),
+    readLayers: (path) => ipcRenderer.invoke(IpcChannel.TexturesReadLayers, path),
+    saveEdit: (path, png, layers) =>
+      ipcRenderer.invoke(IpcChannel.TexturesSaveEdit, path, png, layers),
     onProgress: (listener) => {
       const forward = (_event: IpcRendererEvent, progress: TextureProgress): void =>
         listener(progress)
