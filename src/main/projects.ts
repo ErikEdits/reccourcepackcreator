@@ -12,7 +12,14 @@ import type {
   ProjectSummary,
   RecentProject,
 } from '../shared/project'
-import { createPackFolder, exportPack, PackError, readPack } from './pack-io'
+import {
+  createPackFolder,
+  exportPack,
+  PackError,
+  readPack,
+  removePackTexture,
+  writePackTexture,
+} from './pack-io'
 import { isInside } from './paths'
 
 const MAX_RECENT = 10
@@ -101,16 +108,46 @@ export async function createProject(request: NewPackRequest): Promise<ProjectSum
   return openProject(dir)
 }
 
+/** The open pack folder, or null. */
+export function currentProject(): ProjectSummary | null {
+  return current
+}
+
+function requireCurrent(): ProjectSummary {
+  if (!current) throw new PackError('No pack is open.')
+  return current
+}
+
+/** Replaces a texture in the open pack and returns the updated pack. */
+export async function replaceTexture(
+  path: string,
+  png: Uint8Array,
+  animation: Uint8Array | 'keep' | null,
+): Promise<ProjectSummary> {
+  const { dir } = requireCurrent()
+  await writePackTexture(dir, path, png, animation)
+  current = await readPack(dir)
+  return current
+}
+
+/** Removes the open pack's version of a texture and returns the updated pack. */
+export async function revertTexture(path: string): Promise<ProjectSummary> {
+  const { dir } = requireCurrent()
+  await removePackTexture(dir, path)
+  current = await readPack(dir)
+  return current
+}
+
 export function closeProject(): void {
   current = null
 }
 
 export async function exportCurrentProject(request: ExportRequest): Promise<ExportResult> {
-  if (!current) throw new PackError('No pack is open.')
+  const { dir } = requireCurrent()
   const destination = request.destination ?? app.getPath('downloads')
   assertApproved(destination)
   // Re-read so files added outside the app since opening are included.
-  current = await readPack(current.dir)
+  current = await readPack(dir)
   const result = await exportPack(current, request, destination)
 
   if (Notification.isSupported()) {

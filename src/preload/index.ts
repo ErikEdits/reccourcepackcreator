@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { RendererApi } from '../shared/api'
 import { IpcChannel, IpcEvent } from '../shared/channels'
+import type { TextureProgress } from '../shared/textures'
 
 // The renderer only ever sees these functions; it never gets ipcRenderer or Node.js.
 const api: RendererApi = {
@@ -31,6 +32,21 @@ const api: RendererApi = {
     open: (dir) => ipcRenderer.invoke(IpcChannel.ProjectOpen, dir),
     close: () => ipcRenderer.invoke(IpcChannel.ProjectClose),
     export: (request) => ipcRenderer.invoke(IpcChannel.ProjectExport, request),
+  },
+  textures: {
+    load: () => ipcRenderer.invoke(IpcChannel.TexturesLoad),
+    replace: (path, png) => ipcRenderer.invoke(IpcChannel.TexturesReplace, path, png),
+    revert: (path) => ipcRenderer.invoke(IpcChannel.TexturesRevert, path),
+    onProgress: (listener) => {
+      const forward = (_event: IpcRendererEvent, progress: TextureProgress): void =>
+        listener(progress)
+      ipcRenderer.on(IpcEvent.TexturesProgress, forward)
+      return () => ipcRenderer.removeListener(IpcEvent.TexturesProgress, forward)
+    },
+  },
+  minecraft: {
+    filesInfo: () => ipcRenderer.invoke(IpcChannel.MinecraftFilesInfo),
+    clearCache: () => ipcRenderer.invoke(IpcChannel.MinecraftClearCache),
   },
 }
 

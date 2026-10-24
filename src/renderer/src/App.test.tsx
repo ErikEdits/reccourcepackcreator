@@ -32,6 +32,20 @@ function stubApi(): RendererApi {
       close: vi.fn(async () => {}),
       export: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
     },
+    textures: {
+      load: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      replace: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      revert: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      onProgress: vi.fn(() => () => {}),
+    },
+    minecraft: {
+      filesInfo: vi.fn(async () => ({
+        minecraftDir: '/home/test/.minecraft',
+        found: false,
+        cacheBytes: 0,
+      })),
+      clearCache: vi.fn(async () => {}),
+    },
   }
 }
 

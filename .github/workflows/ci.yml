@@ -28,6 +28,9 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+        env:
+          # Also downloads a real client JAR from Mojang (src/main/vanilla/mojang.live.test.ts).
+          RPC_LIVE_TESTS: '1'
       - name: Audit runtime dependencies
         run: npm audit --omit=dev --audit-level=high
       - run: npm run build

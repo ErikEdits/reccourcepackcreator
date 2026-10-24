@@ -8,12 +8,22 @@ import type {
   ProjectSummary,
   RecentProject,
 } from './project'
+import type { TextureIndex, TextureProgress } from './textures'
 
 export interface AppInfo {
   name: string
   version: string
   platform: string
   electronVersion: string
+}
+
+export interface MinecraftFilesInfo {
+  /** Where the Minecraft launcher keeps its files on this computer. */
+  minecraftDir: string
+  /** That folder exists, so installed versions are read from it instead of downloaded. */
+  found: boolean
+  /** Bytes of game files the app downloaded itself. */
+  cacheBytes: number
 }
 
 /** Outcome of an operation that can fail for reasons worth showing to the user. */
@@ -46,5 +56,19 @@ export interface RendererApi {
     open(dir: string): Promise<Result<ProjectSummary>>
     close(): Promise<void>
     export(request: ExportRequest): Promise<Result<ExportResult>>
+  }
+  textures: {
+    /** Vanilla textures of the open pack's Minecraft version (may download the game files). */
+    load(): Promise<Result<TextureIndex>>
+    /** Writes a PNG over a texture in the open pack. */
+    replace(path: string, png: Uint8Array): Promise<Result<ProjectSummary>>
+    /** Removes the pack's version of a texture. */
+    revert(path: string): Promise<Result<ProjectSummary>>
+    /** Returns a function that removes the listener. */
+    onProgress(listener: (progress: TextureProgress) => void): () => void
+  }
+  minecraft: {
+    filesInfo(): Promise<MinecraftFilesInfo>
+    clearCache(): Promise<void>
   }
 }

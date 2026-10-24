@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ProjectSummary, RecentProject } from '../../../shared/project'
 
-type Dialog = 'new-pack' | 'export' | null
+type Dialog = 'new-pack' | 'export' | 'settings' | null
 
 interface ProjectState {
   summary: ProjectSummary | null

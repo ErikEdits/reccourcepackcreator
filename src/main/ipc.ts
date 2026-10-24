@@ -13,6 +13,12 @@ import {
   openProject,
 } from './projects'
 import { isAppUrl, openExternalSafely } from './security'
+import {
+  loadTexturesForCurrentProject,
+  replaceTextureInCurrentProject,
+  revertTextureInCurrentProject,
+} from './textures'
+import { clearDownloadCache, minecraftFilesInfo } from './vanilla/vanilla'
 
 type Handler<C extends IpcChannelName> = (event: IpcMainInvokeEvent, ...args: IpcArgs<C>) => unknown
 
@@ -86,4 +92,16 @@ export function registerIpcHandlers(): void {
   handle(IpcChannel.ProjectExport, (_event, request) =>
     asResult(() => exportCurrentProject(request)),
   )
+
+  handle(IpcChannel.TexturesLoad, (event) =>
+    asResult(() => loadTexturesForCurrentProject(event.sender)),
+  )
+  handle(IpcChannel.TexturesReplace, (_event, path, png) =>
+    asResult(() => replaceTextureInCurrentProject(path, png)),
+  )
+  handle(IpcChannel.TexturesRevert, (_event, path) =>
+    asResult(() => revertTextureInCurrentProject(path)),
+  )
+  handle(IpcChannel.MinecraftFilesInfo, () => minecraftFilesInfo())
+  handle(IpcChannel.MinecraftClearCache, () => clearDownloadCache())
 }

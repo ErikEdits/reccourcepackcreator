@@ -1,0 +1,102 @@
+import { useMemo } from 'react'
+import { create } from 'zustand'
+import {
+  buildTextureRows,
+  DEFAULT_TEXTURE_FILTERS,
+  TEXTURE_PROTOCOL,
+  type TextureFilters,
+  type TextureIndex,
+  type TextureProgress,
+  type TextureRow,
+} from '../../../shared/textures'
+import { useProject } from './project'
+
+type Status = 'idle' | 'loading' | 'ready' | 'error'
+
+interface TextureState {
+  status: Status
+  index: TextureIndex | null
+  error: string | null
+  progress: TextureProgress | null
+  filters: TextureFilters
+  selected: string | null
+  /** Bumped whenever the pack's textures change, so their images are fetched again. */
+  revision: number
+  load: () => Promise<void>
+  reset: () => void
+  setProgress: (progress: TextureProgress) => void
+  setFilters: (filters: Partial<TextureFilters>) => void
+  select: (path: string | null) => void
+  bumpRevision: () => void
+}
+
+/** Lets a load that finishes after the pack was switched be ignored. */
+let loadToken = 0
+
+export const useTextures = create<TextureState>()((set, get) => ({
+  status: 'idle',
+  index: null,
+  error: null,
+  progress: null,
+  filters: DEFAULT_TEXTURE_FILTERS,
+  selected: null,
+  revision: 0,
+  load: async () => {
+    const token = ++loadToken
+    set({ status: 'loading', error: null, progress: null })
+    const result = await window.api.textures.load()
+    if (token !== loadToken) return
+    if (result.ok) set({ status: 'ready', index: result.value, progress: null })
+    else set({ status: 'error', error: result.error, progress: null })
+  },
+  reset: () => {
+    loadToken++
+    set({
+      status: 'idle',
+      index: null,
+      error: null,
+      progress: null,
+      selected: null,
+      filters: DEFAULT_TEXTURE_FILTERS,
+    })
+  },
+  setProgress: (progress) => {
+    if (get().status === 'loading') set({ progress })
+  },
+  setFilters: (filters) => set({ filters: { ...get().filters, ...filters } }),
+  select: (selected) => set({ selected }),
+  bumpRevision: () => set({ revision: get().revision + 1 }),
+}))
+
+/** Vanilla textures merged with the open pack's files. */
+export function useTextureRows(): TextureRow[] {
+  const index = useTextures((state) => state.index)
+  const files = useProject((state) => state.summary?.files)
+  return useMemo(
+    () => (index && files ? buildTextureRows(index.textures, files) : []),
+    [index, files],
+  )
+}
+
+export function useSelectedRow(): TextureRow | null {
+  const rows = useTextureRows()
+  const selected = useTextures((state) => state.selected)
+  return useMemo(() => rows.find((row) => row.path === selected) ?? null, [rows, selected])
+}
+
+const encodePath = (path: string): string => path.split('/').map(encodeURIComponent).join('/')
+
+export function vanillaTextureUrl(path: string, version: string): string {
+  return `${TEXTURE_PROTOCOL}://vanilla/${encodePath(path)}?mc=${encodeURIComponent(version)}`
+}
+
+export function packTextureUrl(path: string, revision: number): string {
+  return `${TEXTURE_PROTOCOL}://pack/${encodePath(path)}?r=${revision}`
+}
+
+/** What the list shows: the pack's version if it has one, else the original. */
+export function rowImageUrl(row: TextureRow, version: string, revision: number): string {
+  return row.changed || row.added
+    ? packTextureUrl(row.path, revision)
+    : vanillaTextureUrl(row.path, version)
+}
