@@ -43,6 +43,7 @@ npm run dev
 | `npm run test:e2e`                        | Build, then drive the real app with Playwright                     |
 | `npm run dist:win` / `npm run dist:linux` | Build installers into `dist/`                                      |
 | `npm run update:versions`                 | Refresh the Minecraft version table after a new release            |
+| `npm run update:renames`                  | Regenerate the texture rename table from the version mirror        |
 
 On Linux without a display, run the end-to-end tests with
 `xvfb-run --auto-servernum npm run test:e2e`.

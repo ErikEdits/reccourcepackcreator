@@ -31,6 +31,18 @@ describe('planExport', () => {
     ])
   })
 
+  it('keeps versions with different texture names apart even when the format matches', () => {
+    const plan = planExport(project, {
+      versions: ['1.6.4', '1.7.2', '1.8.9'],
+      combineSameFormat: true,
+      fileNameTemplate: template,
+    })
+    expect(plan.units.map((unit) => unit.fileName)).toEqual([
+      'Pack_MC1.6.4.zip',
+      'Pack_MC1.7.2-1.8.9.zip',
+    ])
+  })
+
   it('flags templates that would give several ZIPs the same name', () => {
     const plan = planExport(project, {
       versions: ['1.20.3', '1.21.4'],

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { unzipSync } from 'fflate'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { solidPng, WATER_MCMETA } from '../helpers/png'
@@ -120,6 +121,31 @@ test('keeps animations when a strip is dropped onto an animated texture', async 
   expect(readFileSync(join(textureDir, 'block', 'water_still.png.mcmeta'), 'utf8')).toBe(
     WATER_MCMETA,
   )
+})
+
+test('exports textures under the names of older versions', async () => {
+  await page.getByRole('button', { name: 'Back to pack' }).click()
+  await page.getByRole('button', { name: 'Export…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Export pack' })
+  await dialog.getByRole('button', { name: 'None' }).click()
+  await dialog.getByRole('checkbox', { name: '1.12.2', exact: true }).check()
+  await dialog
+    .getByRole('button', { name: 'Export', exact: true })
+    // A short timeout: nothing (like a message) may cover the button.
+    .click({ timeout: 2000 })
+  await expect(
+    page.getByRole('status').filter({ hasText: 'renamed to match older or newer versions' }),
+  ).toBeVisible()
+
+  const zip = unzipSync(
+    readFileSync(join(launched.dirs.downloads, 'Texture Pack_v1.0.0_MC1.12.2.zip')),
+  )
+  expect(Object.keys(zip).sort()).toEqual([
+    'assets/minecraft/textures/blocks/stone.png',
+    'assets/minecraft/textures/blocks/water_still.png',
+    'assets/minecraft/textures/blocks/water_still.png.mcmeta',
+    'pack.mcmeta',
+  ])
 })
 
 test('reverts a texture to the original', async () => {

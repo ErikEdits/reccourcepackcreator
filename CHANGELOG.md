@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0] - 2026-10-24
+
+### New
+
+- **Exports for older and newer Minecraft versions now use the right texture names.** A pack
+  made for 1.21 that is exported for 1.12 gets `blocks/planks_oak.png` instead of
+  `block/oak_planks.png`, and the other way round; animation files move along. This covers
+  1,100 renames from 1.6.1 to 26.3, including the 1.13 "Flattening". The export message says
+  how many textures were renamed.
+- "One ZIP per pack format" now also splits where texture names changed without a new pack
+  format (1.6.x and 1.7.x).
+
+### Fixed
+
+- Messages in the bottom corner covered the dialogs' buttons for six seconds. They now appear
+  bottom left and never block clicks.
+
+### Known limitations
+
+- Textures that Minecraft split up or redrew with a new layout (GUI sprites in 1.20.2,
+  paintings and villagers in 1.14, the 64×64 cow, pig and rabbit models of 1.21.5 and 26.1)
+  are not converted.
+
 ## [0.2.0] - 2026-10-24
 
 ### New

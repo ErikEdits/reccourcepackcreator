@@ -13,6 +13,7 @@ import {
   pngSize,
   readPack,
   removePackTexture,
+  renameForVersion,
   writePackTexture,
 } from './pack-io'
 import { isInside } from './paths'
@@ -215,5 +216,51 @@ describe('pack textures', () => {
     await writePackTexture(dir, 'block/stone.png', PNG, strToU8('{}'))
     await removePackTexture(dir, 'block/stone.png')
     expect((await readPack(dir)).files).toEqual(['pack.mcmeta', 'pack.png'])
+  })
+})
+
+describe('exporting for other versions', () => {
+  it("renames textures and their animation files to each version's names", async () => {
+    const dir = await createPackFolder(request())
+    await writePackTexture(dir, 'block/oak_planks.png', PNG, null)
+    await writePackTexture(dir, 'block/water_still.png', PNG, strToU8('{"animation":{}}'))
+    const out = join(root, 'out')
+    const result = await exportPack(
+      await readPack(dir),
+      {
+        versions: ['1.12.2', '1.21.4'],
+        combineSameFormat: false,
+        destination: out,
+        fileNameTemplate: 'MC{mc}',
+      },
+      out,
+    )
+    expect(result.renamedFiles).toBe(3)
+
+    const old = unzipSync(await readFile(join(out, 'MC1.12.2.zip')))
+    expect(Object.keys(old).sort()).toEqual([
+      'assets/minecraft/textures/blocks/planks_oak.png',
+      'assets/minecraft/textures/blocks/water_still.png',
+      'assets/minecraft/textures/blocks/water_still.png.mcmeta',
+      'pack.mcmeta',
+      'pack.png',
+    ])
+    const current = unzipSync(await readFile(join(out, 'MC1.21.4.zip')))
+    expect(Object.keys(current)).toContain('assets/minecraft/textures/block/oak_planks.png')
+  })
+
+  it('prefers a file that already has the target name', () => {
+    const own = strToU8('own')
+    const other = strToU8('other')
+    const result = renameForVersion(
+      {
+        'assets/minecraft/textures/block/oak_planks.png': other,
+        'assets/minecraft/textures/blocks/planks_oak.png': own,
+      },
+      '1.21.4',
+      '1.12.2',
+    )
+    expect(result.contents).toEqual({ 'assets/minecraft/textures/blocks/planks_oak.png': own })
+    expect(result.renamed).toEqual([])
   })
 })
