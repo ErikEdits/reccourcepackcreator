@@ -1,7 +1,7 @@
 {
   "name": "resource-pack-creator",
   "productName": "Resource Pack Creator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Desktop app for creating Minecraft Java Edition resource packs",
   "author": "ErikEdits",
   "license": "MIT",
