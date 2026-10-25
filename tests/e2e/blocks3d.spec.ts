@@ -40,6 +40,7 @@ test.afterAll(async () => {
 
 const tiles = () => page.getByRole('list', { name: 'Textures' }).getByRole('listitem')
 const preview = () => page.getByLabel('3D preview')
+const history = () => page.getByRole('list', { name: 'History' }).getByRole('button')
 const tab = (name: string) =>
   page
     .getByRole('tablist', { name: 'Textures of this block' })
@@ -144,9 +145,12 @@ test('switches to the texture of a face that is clicked, then paints it', async 
   await clickAt('block', top)
   await expect(tab('Top')).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Grass Block' })).toBeVisible()
+  // The top texture is open: its own, fresh history.
+  await expect(history()).toHaveText(['Opened'])
   await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('All changes saved')
   await clickAt('block', top)
   await saved()
+  await expect(history()).toHaveText(['Opened', 'Pencil'])
   expect(await packPixel('block/grass_block_top.png', 8, 8)).toEqual(RED)
 
   await page.keyboard.press('Control+z')
@@ -155,10 +159,8 @@ test('switches to the texture of a face that is clicked, then paints it', async 
 
   // Each texture keeps its own history while the block is open.
   await tab('Side').click()
-  await expect(page.getByRole('list', { name: 'History' }).getByRole('button')).toHaveText([
-    'Opened',
-    'Pencil',
-  ])
+  await expect(history()).toHaveText(['Opened', 'Pencil'])
+  await expect(tab('Side')).toHaveAttribute('aria-selected', 'true')
 })
 
 test('shows 2D, 3D or both', async () => {

@@ -459,7 +459,7 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   }
 
   const hint = PAINT_TOOLS.has(tool)
-    ? 'Paint on the model. Drag beside it, with the right button or with Shift to turn it.'
+    ? 'Paint on the model; a face with another texture opens that texture first. Drag beside the model, with the right button or with Shift to turn it.'
     : 'Choose the pencil, eraser, fill or colour picker to paint here.'
 
   if (!kind) {
@@ -486,10 +486,13 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
         aria-label="3D preview"
         role="img"
         data-ready={
+          // Not while the editor is still switching to the selected texture.
+          editorPath === row.path &&
+          status === 'ready' &&
           shown === geometry &&
           !!geometry &&
           loadedFor === geometry &&
-          (!editorPath || !geometry.textures.includes(editorPath) || !!live)
+          !!live
         }
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}

@@ -388,6 +388,8 @@ export function EditorView({ row }: { row: TextureRow }) {
   const status = useEditor((state) => state.status)
   const error = useEditor((state) => state.error)
   const saveState = useEditor((state) => state.saveState)
+  // The texture the editor holds; it lags behind the selection for a moment when switching.
+  const editorPath = useEditor((state) => state.path)
   const layout = useSettings((state) => state.editorLayout)
   const [importError, setImportError] = useState<string | null>(null)
   const blockRows = useBlockRows(row)
@@ -458,7 +460,7 @@ export function EditorView({ row }: { row: TextureRow }) {
           aria-label="Save status"
           className={`shrink-0 text-xs ${saveState === 'failed' ? 'text-danger' : 'text-ink-muted'}`}
         >
-          {status === 'ready' ? SAVE_LABELS[saveState] : ''}
+          {status === 'ready' && editorPath === row.path ? SAVE_LABELS[saveState] : ''}
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <label className="cursor-pointer rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-medium hover:border-ink-muted">
