@@ -3,6 +3,7 @@
 
 import { protocol, type WebContents } from 'electron'
 import { readFile } from 'node:fs/promises'
+import type { BlockModel } from '../shared/block-models'
 import { IpcEvent } from '../shared/channels'
 import type { ProjectSummary } from '../shared/project'
 import {
@@ -13,7 +14,7 @@ import {
 } from '../shared/textures'
 import { packTextureFile, PackError, pngSize, readLayersFile, writeLayersFile } from './pack-io'
 import { currentProject, replaceTexture, revertTexture } from './projects'
-import { loadVanilla, vanillaFile } from './vanilla/vanilla'
+import { loadVanilla, vanillaBlockModel, vanillaFile } from './vanilla/vanilla'
 
 /** Must run before the app is ready. */
 export function registerTextureScheme(): void {
@@ -112,6 +113,11 @@ export async function readTextureImage(
   return source === 'vanilla'
     ? vanillaFile(project.project.minecraftVersion, path)
     : readPackTexture(path)
+}
+
+/** The 3D model of a block of the open pack's Minecraft version. */
+export function readBlockModel(id: string): Promise<BlockModel | null> {
+  return vanillaBlockModel(requireProject().project.minecraftVersion, id)
 }
 
 /** The editor's saved layers of a texture, if it has any. */

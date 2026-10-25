@@ -7,9 +7,12 @@ import {
   type TextureFilters,
   type TextureIndex,
   type TextureProgress,
+  type TextureEntry,
   type TextureRow,
+  textureEntries,
 } from '../../../shared/textures'
 import { useProject } from './project'
+import { useSettings } from './settings'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -73,9 +76,39 @@ export function useTextureRows(): TextureRow[] {
   const index = useTextures((state) => state.index)
   const files = useProject((state) => state.summary?.files)
   return useMemo(
-    () => (index && files ? buildTextureRows(index.textures, files) : []),
+    () => (index && files ? buildTextureRows(index.textures, files, index.blocks) : []),
     [index, files],
   )
+}
+
+/** The list's tiles: single textures, and blocks with all their textures. */
+export function useTextureEntries(): TextureEntry[] {
+  const rows = useTextureRows()
+  const blocks = useTextures((state) => state.index?.blocks)
+  const byBlock = useSettings((state) => state.groupByBlock)
+  return useMemo(() => textureEntries(rows, blocks ?? [], byBlock), [rows, blocks, byBlock])
+}
+
+/** All textures of the selected texture's block (just the texture itself if it has none). */
+export function useBlockRows(row: TextureRow | null): TextureRow[] {
+  const rows = useTextureRows()
+  const blocks = useTextures((state) => state.index?.blocks)
+  return useMemo(() => {
+    if (!row) return []
+    const block = row.block && blocks?.find((entry) => entry.id === row.block)
+    if (!block) return [row]
+    const byPath = new Map(rows.map((entry) => [entry.path, entry]))
+    return block.textures
+      .map((path) => byPath.get(path))
+      .filter((entry): entry is TextureRow => entry !== undefined)
+  }, [row, rows, blocks])
+}
+
+/** Whether a texture can be shown in 3D: textures of blocks with a model, and items. */
+export function useHas3d(row: TextureRow): boolean {
+  const blocks = useTextures((state) => state.index?.blocks)
+  if (row.path.startsWith('item/')) return true
+  return !!row.block && !!blocks?.some((block) => block.id === row.block && block.has3d)
 }
 
 export function useSelectedRow(): TextureRow | null {

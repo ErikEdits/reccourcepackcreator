@@ -8,6 +8,7 @@ import type {
   ProjectSummary,
   RecentProject,
 } from './project'
+import type { BlockModel } from './block-models'
 import type { TextureIndex, TextureProgress } from './textures'
 
 export interface AppInfo {
@@ -68,6 +69,8 @@ export interface RendererApi {
     readLayers(path: string): Promise<string | null>
     /** Saves an edited texture: the flattened PNG into the pack, the layers into .rpc. */
     saveEdit(path: string, png: Uint8Array, layers: string | null): Promise<Result<ProjectSummary>>
+    /** The 3D model of a block (e.g. "grass_block") of the pack's Minecraft version. */
+    blockModel(id: string): Promise<BlockModel | null>
     /** Returns a function that removes the listener. */
     onProgress(listener: (progress: TextureProgress) => void): () => void
   }

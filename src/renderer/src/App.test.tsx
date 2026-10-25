@@ -38,6 +38,7 @@ function stubApi(): RendererApi {
       readImage: vi.fn(async () => null),
       readLayers: vi.fn(async () => null),
       saveEdit: vi.fn(async () => ({ ok: false as const, error: 'not in unit tests' })),
+      blockModel: vi.fn(async () => null),
       onProgress: vi.fn(() => () => {}),
     },
     minecraft: {

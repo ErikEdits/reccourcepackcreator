@@ -5,14 +5,22 @@ import { readdir, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MinecraftFilesInfo } from '../../shared/api'
 import { isAllowedNetworkUrl } from '../../shared/network-policy'
+import { blockModel, groupTexturesByBlock, type BlockModel } from '../../shared/block-models'
 import type { TextureIndex } from '../../shared/textures'
 import { defaultMinecraftDir, resolveClientJar } from './client-jar'
 import { downloadClientJar, type ProgressListener } from './mojang'
-import { extractTextures, indexTextures, type ImageDecoder } from './texture-index'
+import {
+  extractModels,
+  extractTextures,
+  indexTextures,
+  type GameModels,
+  type ImageDecoder,
+} from './texture-index'
 
 interface LoadedVersion {
   index: TextureIndex
   files: Map<string, Uint8Array>
+  models: GameModels
 }
 
 /** At most this many versions stay in memory (switching packs back and forth stays fast). */
@@ -70,10 +78,14 @@ async function load(version: string, onProgress?: ProgressListener): Promise<Loa
     onProgress,
   })
   const files = extractTextures(jar.bytes)
-  return {
-    index: { version, source: jar.source, textures: indexTextures(files, decodeWithNativeImage) },
-    files,
-  }
+  const models = extractModels(jar.bytes)
+  const textures = indexTextures(files, decodeWithNativeImage)
+  const blocks = groupTexturesByBlock(
+    models.blockstates,
+    (name) => models.models.get(name),
+    new Set(textures.map((texture) => texture.path)),
+  )
+  return { index: { version, source: jar.source, textures, blocks }, files, models }
 }
 
 /** Loads a version once; concurrent and repeated calls share the result. Failures can be retried. */
@@ -103,6 +115,19 @@ export async function vanillaFile(version: string, path: string): Promise<Uint8A
   if (!pending) return null
   try {
     return (await pending).files.get(path) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** The 3D model of a block of a loaded version; null if it has none. */
+export async function vanillaBlockModel(version: string, id: string): Promise<BlockModel | null> {
+  const pending = loaded.get(version)
+  if (!pending) return null
+  try {
+    const { models } = await pending
+    const blockstate = models.blockstates.get(id)
+    return blockstate ? blockModel(id, blockstate, (name) => models.models.get(name)) : null
   } catch {
     return null
   }

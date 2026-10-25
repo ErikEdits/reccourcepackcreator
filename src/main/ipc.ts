@@ -15,6 +15,7 @@ import {
 import { isAppUrl, openExternalSafely } from './security'
 import {
   loadTexturesForCurrentProject,
+  readBlockModel,
   readTextureImage,
   readTextureLayers,
   replaceTextureInCurrentProject,
@@ -106,6 +107,7 @@ export function registerIpcHandlers(): void {
   handle(IpcChannel.TexturesSaveEdit, (_event, path, png, layers) =>
     asResult(() => replaceTextureInCurrentProject(path, png, layers)),
   )
+  handle(IpcChannel.TexturesBlockModel, (_event, id) => readBlockModel(id))
   handle(IpcChannel.MinecraftFilesInfo, () => minecraftFilesInfo())
   handle(IpcChannel.MinecraftClearCache, () => clearDownloadCache())
 }

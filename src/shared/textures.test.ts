@@ -5,8 +5,10 @@ import {
   classifyColour,
   DEFAULT_TEXTURE_FILTERS,
   displayName,
+  filterTextureEntries,
   filterTextureRows,
   isTexturePath,
+  textureEntries,
   textureName,
   wikiUrl,
   type VanillaTexture,
@@ -119,5 +121,47 @@ describe('filterTextureRows', () => {
     expect(names({ category: 'items' })).toEqual(['diamond_sword'])
     expect(names({ colour: 'red' })).toEqual(['red_wool'])
     expect(names({ changedOnly: true })).toEqual(['stone'])
+  })
+})
+
+describe('textureEntries', () => {
+  const blocks = [
+    {
+      id: 'grass_block',
+      textures: ['block/grass_block_side.png', 'block/grass_block_top.png'],
+      has3d: true,
+    },
+  ]
+  const rows = buildTextureRows(
+    [
+      texture('block/grass_block_side.png', 'green'),
+      texture('block/grass_block_top.png', 'grey'),
+      texture('block/stone.png', 'grey'),
+    ],
+    ['assets/minecraft/textures/block/grass_block_top.png'],
+    blocks,
+  )
+
+  it('shows the textures of a block as one entry', () => {
+    const entries = textureEntries(rows, blocks, true)
+    expect(entries.map((entry) => [entry.key, entry.name, entry.rows.length])).toEqual([
+      ['block:grass_block', 'Grass Block', 2],
+      ['block/stone.png', 'Stone', 1],
+    ])
+    expect(rows[1].block).toBe('grass_block')
+    expect(textureEntries(rows, blocks, false)).toHaveLength(3)
+  })
+
+  it('keeps a block when any of its textures or its name matches', () => {
+    const entries = textureEntries(rows, blocks, true)
+    const keys = (filters: Partial<typeof DEFAULT_TEXTURE_FILTERS>) =>
+      filterTextureEntries(entries, { ...DEFAULT_TEXTURE_FILTERS, ...filters }).map(
+        (entry) => entry.key,
+      )
+    expect(keys({ changedOnly: true })).toEqual(['block:grass_block'])
+    expect(keys({ colour: 'green' })).toEqual(['block:grass_block'])
+    expect(keys({ query: 'grass block' })).toEqual(['block:grass_block'])
+    expect(keys({ query: 'top' })).toEqual(['block:grass_block'])
+    expect(keys({ colour: 'grey' })).toEqual(['block:grass_block', 'block/stone.png'])
   })
 })

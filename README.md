@@ -6,9 +6,9 @@ latest release. Built for beginners (Simple mode) and pack veterans (Expert
 mode) alike, for Windows and Linux.
 
 > **Status:** early preview. You can create packs with the wizard, browse every
-> texture of your Minecraft version, paint them in the built-in pixel editor and
-> export the pack for every Minecraft version; 3D preview, animation and the other
-> editors come next. See
+> texture of your Minecraft version (grouped by block), paint them in the built-in
+> pixel editor or directly on the 3D block and item models, and export the pack for
+> every Minecraft version; mob models, animation and the other editors come next. See
 > [CHANGELOG.md](CHANGELOG.md) for what is in each release and
 > [docs/DECISIONS.md](docs/DECISIONS.md) for the full feature scope.
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### New
+
+- **3D preview.** Blocks are shown with their real Minecraft models (stairs, torches, plants,
+  logs …) including the biome colour of grass and leaves, Minecraft's shading and see-through
+  parts; items are shown as thick sprites like in the hand. The preview follows every stroke
+  live. Choose 2D, 3D or both side by side below the editor.
+- **Paint in 3D.** Pencil, eraser, fill and the colour picker work directly on the model.
+  Clicking a face that shows another texture of the block (the grass block's top) switches to
+  that texture; the next click paints it. Drag beside the model, with the right mouse button
+  or with Shift to turn it; the mouse wheel zooms.
+- **One entry per block in the texture list.** The textures of a block (top, side, overlay,
+  snowy side …) now appear together as one tile with a count, instead of separately. The
+  editor shows them as tabs. "Blocks" next to the filters switches back to single textures.
+- Switching between the textures of a block keeps each texture's undo history.
+
+### Notes
+
+- Mob models and the item-in-hand view come in a later release.
+- Minecraft 1.6 and 1.7 have no block models, so they keep the flat list and have no 3D
+  view for blocks.
+
 ## [0.4.0] - 2026-10-24
 
 ### New

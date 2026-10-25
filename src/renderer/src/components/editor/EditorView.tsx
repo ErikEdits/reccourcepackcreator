@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { displayName, type TextureRow } from '../../../../shared/textures'
 import { currentDoc } from '../../editor/history'
 import { toHex, type Rgba } from '../../editor/pixels'
@@ -6,13 +6,22 @@ import { DEFAULT_SHORTCUTS, type ShortcutAction } from '../../editor/shortcuts'
 import { decodeImage, imageToTexture } from '../../lib/images'
 import { MAX_BRUSH_SIZE, useEditor, type SaveState, type Tool } from '../../store/editor'
 import { useProject } from '../../store/project'
-import { useSettings } from '../../store/settings'
-import { statusLabel, useTextures } from '../../store/textures'
+import { useSettings, type EditorLayout } from '../../store/settings'
+import { rowImageUrl, statusLabel, useBlockRows, useHas3d, useTextures } from '../../store/textures'
 import { useToasts } from '../../store/toasts'
 import { Button, ErrorText } from '../ui'
 import { ToolIcon } from './icons'
 import { PixelCanvas } from './PixelCanvas'
 import { useEditorShortcuts } from './useEditorShortcuts'
+
+// Three.js is big; it is only loaded once a 3D view is shown.
+const Preview3D = lazy(() => import('../../preview/Preview3D'))
+
+const LAYOUTS: { value: EditorLayout; label: string }[] = [
+  { value: '2d', label: '2D' },
+  { value: '3d', label: '3D' },
+  { value: 'both', label: '2D + 3D' },
+]
 
 const TOOLS: { tool: Tool; label: string }[] = [
   { tool: 'pencil', label: 'Pencil' },
@@ -266,7 +275,64 @@ function ToolOptions() {
   )
 }
 
-function EditorStatus() {
+/** Tabs for the textures of one block: its side, top, overlay … */
+function BlockTextures({ rows, active }: { rows: TextureRow[]; active: string }) {
+  const select = useTextures((state) => state.select)
+  const version = useTextures((state) => state.index?.version ?? '')
+  const revision = useTextures((state) => state.revision)
+  const block = rows[0]?.block ?? ''
+  const label = (row: TextureRow): string =>
+    row.name.startsWith(`${block}_`)
+      ? displayName(row.name.slice(block.length + 1))
+      : displayName(row.name)
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Textures of this block"
+      className="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-3 py-1.5"
+    >
+      {rows.map((row) => (
+        <button
+          key={row.path}
+          type="button"
+          role="tab"
+          aria-selected={row.path === active}
+          title={row.changed || row.added ? `${row.path} (in your pack)` : row.path}
+          onClick={() => select(row.path)}
+          className="flex shrink-0 items-center gap-1.5 rounded-md border border-line px-1.5 py-0.5 text-xs text-ink-muted hover:text-ink aria-selected:border-grass aria-selected:bg-grass/15 aria-selected:text-ink"
+        >
+          <img
+            src={rowImageUrl(row, version, revision)}
+            alt=""
+            draggable={false}
+            className="size-5 object-cover object-top [image-rendering:pixelated]"
+          />
+          {label(row)}
+          {(row.changed || row.added) && (
+            <span className="size-1.5 rounded-full bg-grass" aria-hidden="true" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function LayoutSwitch() {
+  const layout = useSettings((state) => state.editorLayout)
+  const setLayout = useSettings((state) => state.setEditorLayout)
+  return (
+    <div role="group" aria-label="Editor view" className="flex gap-1">
+      {LAYOUTS.map(({ value, label }) => (
+        <Toggle key={value} pressed={layout === value} onClick={() => setLayout(value)}>
+          {label}
+        </Toggle>
+      ))}
+    </div>
+  )
+}
+
+function EditorStatus({ has3d }: { has3d: boolean }) {
   const cursor = useEditor((state) => state.cursor)
   const history = useEditor((state) => state.history)
   const zoom = useEditor((state) => state.zoom)
@@ -287,6 +353,7 @@ function EditorStatus() {
         </span>
       )}
       <span className="w-16 tabular-nums">{cursor ? `${cursor[0]}, ${cursor[1]}` : ''}</span>
+      {has3d && <LayoutSwitch />}
       {selection && (
         <span>
           Selection {selection.width} × {selection.height}
@@ -321,7 +388,12 @@ export function EditorView({ row }: { row: TextureRow }) {
   const status = useEditor((state) => state.status)
   const error = useEditor((state) => state.error)
   const saveState = useEditor((state) => state.saveState)
+  const layout = useSettings((state) => state.editorLayout)
   const [importError, setImportError] = useState<string | null>(null)
+  const blockRows = useBlockRows(row)
+  const has3d = useHas3d(row)
+  const show2d = !has3d || layout !== '3d'
+  const show3d = has3d && layout !== '2d'
   useEditorShortcuts()
 
   const dir = summary?.dir
@@ -369,7 +441,9 @@ export function EditorView({ row }: { row: TextureRow }) {
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-line px-4 py-2">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">{name}</h1>
+          <h1 className="truncate text-lg font-semibold">
+            {row.block && blockRows.length > 1 ? displayName(row.block) : name}
+          </h1>
           <p className="truncate font-mono text-xs text-ink-muted">{row.path}</p>
         </div>
         <span
@@ -411,6 +485,7 @@ export function EditorView({ row }: { row: TextureRow }) {
           </Button>
         </div>
       </div>
+      {blockRows.length > 1 && <BlockTextures rows={blockRows} active={row.path} />}
       {importError && (
         <div className="border-b border-line px-4 py-2">
           <ErrorText>{importError}</ErrorText>
@@ -422,19 +497,24 @@ export function EditorView({ row }: { row: TextureRow }) {
           <ErrorText>{error}</ErrorText>
         </div>
       )}
-      {status === 'loading' && (
-        <p className="flex flex-1 items-center justify-center text-sm text-ink-muted">
-          Loading texture…
-        </p>
-      )}
-      {status === 'ready' && (
+      {/* Stays up while another texture of the block loads, so the 3D view does not flicker. */}
+      {(status === 'ready' || status === 'loading') && (
         <>
           <ToolOptions />
           <div className="flex min-h-0 flex-1">
             <Toolbar />
-            <PixelCanvas onDropFile={(file) => void importImage(file)} />
+            {show2d && <PixelCanvas onDropFile={(file) => void importImage(file)} />}
+            {show3d && (
+              <div className="flex min-w-0 flex-1 border-l border-line">
+                <Suspense
+                  fallback={<p className="m-auto text-sm text-ink-muted">Loading the 3D view…</p>}
+                >
+                  <Preview3D row={row} blockRows={blockRows} onSelectTexture={select} />
+                </Suspense>
+              </div>
+            )}
           </div>
-          <EditorStatus />
+          <EditorStatus has3d={has3d} />
         </>
       )}
     </div>

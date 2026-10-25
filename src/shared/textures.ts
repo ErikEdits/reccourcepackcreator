@@ -1,5 +1,7 @@
 // Texture list model shared by the main process and the UI (docs/DECISIONS.md #22–#24).
 
+import type { BlockInfo } from './block-models'
+
 /** Pack files below this folder are textures. */
 export const PACK_TEXTURE_PREFIX = 'assets/minecraft/textures/'
 
@@ -79,6 +81,8 @@ export interface TextureIndex {
   /** Where the vanilla files came from. */
   source: 'local' | 'cache' | 'download'
   textures: VanillaTexture[]
+  /** Which textures belong to which block (empty before Minecraft 1.8, which has no models). */
+  blocks: BlockInfo[]
 }
 
 export interface TextureProgress {
@@ -165,13 +169,18 @@ export interface TextureRow {
   /** The pack has this texture but the vanilla game does not. */
   added: boolean
   vanilla: VanillaTexture | null
+  /** The block this texture belongs to (e.g. "grass_block" for its top), if any. */
+  block: string | null
 }
 
 /** Combines the vanilla index with the pack's files. */
 export function buildTextureRows(
   textures: readonly VanillaTexture[],
   packFiles: readonly string[],
+  blocks: readonly BlockInfo[] = [],
 ): TextureRow[] {
+  const blockOf = new Map<string, string>()
+  for (const block of blocks) for (const path of block.textures) blockOf.set(path, block.id)
   const packTextures = new Set(
     packFiles
       .filter((file) => file.startsWith(PACK_TEXTURE_PREFIX) && file.endsWith('.png'))
@@ -184,6 +193,7 @@ export function buildTextureRows(
     changed: packTextures.delete(texture.path),
     added: false,
     vanilla: texture,
+    block: blockOf.get(texture.path) ?? null,
   }))
   for (const path of packTextures) {
     rows.push({
@@ -193,6 +203,7 @@ export function buildTextureRows(
       changed: false,
       added: true,
       vanilla: null,
+      block: null,
     })
   }
   return rows
@@ -226,5 +237,76 @@ export function filterTextureRows(
     if (filters.colour !== 'any' && row.vanilla?.colour !== filters.colour) return false
     const haystack = row.path.toLowerCase()
     return words.every((word) => haystack.includes(word))
+  })
+}
+
+/** One tile of the texture list: a single texture, or all textures of a block together. */
+export interface TextureEntry {
+  /** The texture path, or "block:<id>". */
+  key: string
+  name: string
+  block: string | null
+  /** The block's textures in its own order (the most typical first); one for single textures. */
+  rows: TextureRow[]
+}
+
+/**
+ * Turns rows into list entries. With `byBlock`, the textures of a block (a grass block's top,
+ * side and overlay) become one entry, placed where its first texture would be.
+ */
+export function textureEntries(
+  rows: readonly TextureRow[],
+  blocks: readonly BlockInfo[],
+  byBlock: boolean,
+): TextureEntry[] {
+  const single = (row: TextureRow): TextureEntry => ({
+    key: row.path,
+    name: displayName(row.name),
+    block: row.block,
+    rows: [row],
+  })
+  if (!byBlock) return rows.map(single)
+
+  const byPath = new Map(rows.map((row) => [row.path, row]))
+  const order = new Map(blocks.map((block) => [block.id, block.textures]))
+  const done = new Set<string>()
+  const entries: TextureEntry[] = []
+  for (const row of rows) {
+    if (!row.block) {
+      entries.push(single(row))
+      continue
+    }
+    if (done.has(row.block)) continue
+    done.add(row.block)
+    const members = (order.get(row.block) ?? [row.path])
+      .map((path) => byPath.get(path))
+      .filter((member): member is TextureRow => member !== undefined)
+    entries.push({
+      key: `block:${row.block}`,
+      name: displayName(row.block),
+      block: row.block,
+      rows: members,
+    })
+  }
+  return entries
+}
+
+/** Entries with at least one texture that matches the filters (the block name counts too). */
+export function filterTextureEntries(
+  entries: readonly TextureEntry[],
+  filters: TextureFilters,
+): TextureEntry[] {
+  const words = filters.query
+    .toLowerCase()
+    .split(/[\s_]+/)
+    .filter(Boolean)
+  const nameMatches = (entry: TextureEntry): boolean =>
+    words.length > 0 && !!entry.block && words.every((word) => entry.block!.includes(word))
+  return entries.filter((entry) => {
+    const rows = filterTextureRows(
+      entry.rows,
+      nameMatches(entry) ? { ...filters, query: '' } : filters,
+    )
+    return rows.length > 0
   })
 }

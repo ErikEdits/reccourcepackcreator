@@ -40,6 +40,7 @@ const api: RendererApi = {
     readLayers: (path) => ipcRenderer.invoke(IpcChannel.TexturesReadLayers, path),
     saveEdit: (path, png, layers) =>
       ipcRenderer.invoke(IpcChannel.TexturesSaveEdit, path, png, layers),
+    blockModel: (id) => ipcRenderer.invoke(IpcChannel.TexturesBlockModel, id),
     onProgress: (listener) => {
       const forward = (_event: IpcRendererEvent, progress: TextureProgress): void =>
         listener(progress)
