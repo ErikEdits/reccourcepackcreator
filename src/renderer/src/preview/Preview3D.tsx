@@ -28,7 +28,7 @@ import {
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { BlockModel } from '../../../shared/block-models'
-import { mobModelFor } from '../../../shared/mob-models'
+import { mobModelFor, mobTexturesUnder } from '../../../shared/mob-models'
 import type { TextureRow } from '../../../shared/textures'
 import { activeLayer, compose, setLayerPixels, type EditorDocument } from '../editor/document'
 import { currentDoc } from '../editor/history'
@@ -44,7 +44,7 @@ import {
 } from '../editor/raster'
 import { decodeImage } from '../lib/images'
 import { editActiveLayer, editedDocument, useEditor } from '../store/editor'
-import { useTextures } from '../store/textures'
+import { useTextureRows, useTextures } from '../store/textures'
 import { CAMERA_DIRECTION, cameraDistance, FOV, type PreviewKind } from './camera'
 import {
   alphaMask,
@@ -232,7 +232,9 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   const geometry = useMemo<PreviewGeometry | null>(() => {
     if (kind === 'block') return model ? blockGeometry(model) : null
     if (kind === 'item' && live && itemMask) return itemGeometry(row.path, live)
-    if (kind === 'mob' && mob && mobFits) return mobGeometry(mob, row.path)
+    if (kind === 'mob' && mob && mobFits) {
+      return mobGeometry(mob, row.path, mobTexturesUnder(row.path))
+    }
     return null
     // The item's shape only changes with its outline, not with every colour.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,9 +263,11 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
 
   // Pictures of every texture the model uses; the open one follows the editor live.
   const slots = useRef(new Map<string, Slot>())
+  // Every texture of the pack, so textures under an overlay show the pack's version too.
+  const allRows = useTextureRows()
   const rowsByPath = useMemo(
-    () => new Map(blockRows.map((entry) => [entry.path, entry])),
-    [blockRows],
+    () => new Map([...allRows, ...blockRows].map((entry) => [entry.path, entry])),
+    [allRows, blockRows],
   )
   const animated = useCallback(
     (path: string) => !!rowsByPath.get(path)?.vanilla?.animated,

@@ -77,6 +77,27 @@ async function clickAt(kind: PreviewKind, point: [number, number, number]) {
   await page.mouse.click(x, y)
 }
 
+/**
+ * Paints at a point of the model and returns the texture pixel that the app showed under the
+ * mouse. The aim may be off by a pixel (the app's camera, not the test's, decides), but the
+ * painted pixel must be the one the app pointed at.
+ */
+async function paintAt(
+  kind: PreviewKind,
+  point: [number, number, number],
+  near: [number, number],
+): Promise<[number, number]> {
+  const { x, y } = await aim(kind, point)
+  await page.mouse.move(x, y)
+  const cursor = page.getByLabel('Cursor position')
+  await expect(cursor).toHaveText(/^\d+, \d+$/)
+  const [px, py] = (await cursor.textContent())!.split(', ').map(Number)
+  expect(Math.abs(px - near[0])).toBeLessThanOrEqual(1)
+  expect(Math.abs(py - near[1])).toBeLessThanOrEqual(1)
+  await page.mouse.click(x, y)
+  return [px, py]
+}
+
 function packPixel(path: string, x: number, y: number): Promise<number[] | null> {
   return page.evaluate(
     async ({ path, x, y }) => {
@@ -134,9 +155,9 @@ test('paints on the model in 3D', async () => {
   await page.keyboard.press('b')
   // The front (south) face, below the grass overlay: pixel (8, 12) of the side texture.
   const [x, y] = pixel(8, 12)
-  await clickAt('block', [x, 0.5 - y, 0.5])
+  const [px, py] = await paintAt('block', [x, 0.5 - y, 0.5], [8, 12])
   await saved()
-  expect(await packPixel('block/grass_block_side.png', 8, 12)).toEqual(RED)
+  expect(await packPixel('block/grass_block_side.png', px, py)).toEqual(RED)
   // The 2D editor shows the same texture.
   await expect(page.getByRole('list', { name: 'History' }).getByRole('button')).toHaveText([
     'Opened',
@@ -154,14 +175,14 @@ test('switches to the texture of a face that is clicked, then paints it', async 
   // The top texture is open: its own, fresh history.
   await expect(history()).toHaveText(['Opened'])
   await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('All changes saved')
-  await clickAt('block', top)
+  const [px, py] = await paintAt('block', top, [8, 8])
   await saved()
   await expect(history()).toHaveText(['Opened', 'Pencil'])
-  expect(await packPixel('block/grass_block_top.png', 8, 8)).toEqual(RED)
+  expect(await packPixel('block/grass_block_top.png', px, py)).toEqual(RED)
 
   await page.keyboard.press('Control+z')
   await saved()
-  expect(await packPixel('block/grass_block_top.png', 8, 8)).toEqual([150, 150, 150, 255])
+  expect(await packPixel('block/grass_block_top.png', px, py)).toEqual([150, 150, 150, 255])
 
   // Each texture keeps its own history while the block is open.
   await tab('Side').click()
@@ -185,9 +206,9 @@ test('paints items in 3D', async () => {
   await expect(page.getByRole('heading', { name: 'Diamond Sword' })).toBeVisible()
   // A transparent pixel next to the blade: painting it adds to the item's shape.
   const [x, y] = pixel(5, 2)
-  await clickAt('item', [x, 0.5 - y, 1 / 32])
+  const [px, py] = await paintAt('item', [x, 0.5 - y, 1 / 32], [5, 2])
   await saved()
-  expect(await packPixel('item/diamond_sword.png', 5, 2)).toEqual(RED)
+  expect(await packPixel('item/diamond_sword.png', px, py)).toEqual(RED)
 })
 
 test('shows mobs with their model and paints them', async () => {

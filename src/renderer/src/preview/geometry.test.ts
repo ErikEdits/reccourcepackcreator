@@ -117,6 +117,15 @@ describe('mob geometry', () => {
     expect(faceUv(cube(false), 3)[0]).toEqual([16, 8])
   })
 
+  it('repeats the model for each texture under an overlay, bottom first', () => {
+    const { geometry, textures } = mobGeometry(cube(false), 'entity/top.png', ['entity/base.png'])
+    expect(textures).toEqual(['entity/base.png', 'entity/top.png'])
+    expect(geometry.groups).toEqual([
+      { start: 0, count: 36, materialIndex: 0 },
+      { start: 36, count: 36, materialIndex: 1 },
+    ])
+  })
+
   it('mirrors left limbs: sides swap and every face flips', () => {
     expect(faceUv(cube(true), 0)).toEqual([
       [16, 8],

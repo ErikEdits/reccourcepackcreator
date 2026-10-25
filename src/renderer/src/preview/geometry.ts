@@ -324,9 +324,10 @@ type Region = [left: number, top: number, width: number, height: number]
 /**
  * Geometry of a mob model. Each box takes its six faces from Minecraft's "box UV" layout: top
  * and bottom in the first row, then right side, front, left side and back. The model is turned
- * from Minecraft's y-down model space into the preview's y-up space and centred.
+ * from Minecraft's y-down model space into the preview's y-up space and centred. Overlay
+ * textures get the whole model once per texture, the ones `under` them drawn first.
  */
-export function mobGeometry(model: MobModel, path: string): PreviewGeometry {
+export function mobGeometry(model: MobModel, path: string, under: string[] = []): PreviewGeometry {
   const positions: number[] = []
   const uvs: number[] = []
   const colours: number[] = []
@@ -434,15 +435,19 @@ export function mobGeometry(model: MobModel, path: string): PreviewGeometry {
   }
   // Turning half way around z makes y point up (as Minecraft draws mobs); 16 pixels per block.
   const root = new Matrix4().makeScale(-1 / 16, -1 / 16, 1 / 16)
-  for (const part of model.parts) addPart(part, root)
-
+  const textures = [...under, path]
   const geometry = new BufferGeometry()
+  textures.forEach((_, slot) => {
+    const start = positions.length / 3
+    for (const part of model.parts) addPart(part, root)
+    geometry.addGroup(start, positions.length / 3 - start, slot)
+  })
+
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
   geometry.setAttribute('color', new Float32BufferAttribute(colours, 3))
   geometry.center()
-  geometry.addGroup(0, positions.length / 3, 0)
-  return { geometry, textures: [path] }
+  return { geometry, textures }
 }
 
 /** Which pixels are opaque; the item's 3D shape only changes when this does. */

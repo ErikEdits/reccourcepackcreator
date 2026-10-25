@@ -352,7 +352,9 @@ function EditorStatus({ has3d }: { has3d: boolean }) {
           {doc.width} × {doc.height} px
         </span>
       )}
-      <span className="w-16 tabular-nums">{cursor ? `${cursor[0]}, ${cursor[1]}` : ''}</span>
+      <span aria-label="Cursor position" className="w-16 tabular-nums">
+        {cursor ? `${cursor[0]}, ${cursor[1]}` : ''}
+      </span>
       {has3d && <LayoutSwitch />}
       {selection && (
         <span>
