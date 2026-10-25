@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mobModelFor, type MobModel, type MobPart } from './mob-models'
+import { mobModelFor, mobTexturesUnder, type MobModel, type MobPart } from './mob-models'
 
 const PATHS = [
   'entity/zombie/zombie.png',
@@ -19,6 +19,21 @@ const PATHS = [
   'entity/slime/slime.png',
   'entity/wolf/wolf_tame.png',
   'entity/iron_golem/iron_golem.png',
+  'entity/villager/villager.png',
+  'entity/villager/profession/farmer.png',
+  'entity/zombie_villager/zombie_villager.png',
+  'entity/illager/pillager.png',
+  'entity/witch.png',
+  'entity/piglin/piglin.png',
+  'entity/cat/tabby.png',
+  'entity/horse/horse_white.png',
+  'entity/horse/donkey.png',
+  'entity/fox/fox.png',
+  'entity/squid/squid.png',
+  'entity/ghast/ghast.png',
+  'entity/blaze.png',
+  'entity/snow_golem.png',
+  'entity/bear/polarbear.png',
 ]
 
 /** The model as Minecraft 1.21.4's own texture sizes would find it. */
@@ -27,6 +42,9 @@ function vanillaModel(path: string): MobModel {
     [64, 32],
     [64, 64],
     [128, 128],
+    [64, 128],
+    [48, 32],
+    [128, 64],
   ]) {
     const model = mobModelFor(path, width, height)
     if (model) return model
@@ -48,6 +66,16 @@ describe('mob models', () => {
     // Minecraft 1.21.5 redrew the cow on a 64×64 layout: not this model.
     expect(mobModelFor('entity/cow/cow.png', 64, 64)).toBeNull()
     expect(mobModelFor('entity/unknown/thing.png', 64, 32)).toBeNull()
+  })
+
+  it('draws overlays on the textures they belong to', () => {
+    expect(mobTexturesUnder('entity/villager/profession/farmer.png')).toEqual([
+      'entity/villager/villager.png',
+      'entity/villager/type/plains.png',
+    ])
+    expect(mobTexturesUnder('entity/pig/pig_saddle.png')).toEqual(['entity/pig/pig.png'])
+    expect(mobTexturesUnder('entity/villager/villager.png')).toEqual([])
+    expect(mobModelFor('entity/wolf/wolf_collar.png', 64, 32)?.id).toBe('wolf')
   })
 
   it.each(PATHS)('keeps every box of %s inside its texture', (path) => {

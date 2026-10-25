@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### New
+
+- **More mobs in 3D:** villagers (with every biome and profession), zombie villagers,
+  pillagers, vindicators, evokers, illusioners, witches, piglins, piglin brutes, zombified
+  piglins, all cats and the ocelot, horses (all coats, markings and armour), skeleton and zombie
+  horses, donkeys, mules, foxes (and snow foxes), squids and glow squids, ghasts, blazes, snow
+  golems and polar bears.
+- **Overlays on their mob.** Textures that only add something to a mob — a villager's
+  profession or biome clothes, a pig's saddle, the enderman's eyes, a wolf's collar, a horse's
+  markings or armour, an iron golem's cracks, the outer layers of drowned, strays and bogged —
+  are shown on the mob they belong to, so you see what you paint in place. Clicks go to the
+  overlay, also where it is still empty.
+
 ## [0.6.0] - 2026-10-25
 
 ### New
