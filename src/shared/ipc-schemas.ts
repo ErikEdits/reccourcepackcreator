@@ -9,6 +9,8 @@ const texturePath = z.string().max(512).refine(isTexturePath)
 /** Upper bound for one texture image sent from the UI. */
 const MAX_TEXTURE_BYTES = 64 * 1024 * 1024
 const png = z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= MAX_TEXTURE_BYTES)
+/** A block id like "grass_block" (lowercase letters, digits and _). */
+const blockId = z.string().regex(/^[a-z0-9_]{1,128}$/)
 
 /**
  * Argument schemas for every invokable channel. The main process rejects any
@@ -41,6 +43,7 @@ export const ipcArgs = {
       .max(MAX_TEXTURE_BYTES * 2)
       .nullable(),
   ]),
+  [IpcChannel.TexturesBlockModel]: z.tuple([blockId]),
   [IpcChannel.MinecraftFilesInfo]: z.tuple([]),
   [IpcChannel.MinecraftClearCache]: z.tuple([]),
 } satisfies Record<IpcChannelName, z.ZodTuple>

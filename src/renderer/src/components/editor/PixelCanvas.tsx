@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { activeLayer, compose, setLayerPixels, type EditorDocument } from '../../editor/document'
 import { currentDoc } from '../../editor/history'
+import { getDraft, onDraft, setDraft } from '../../editor/live'
 import {
   clipRect,
   cloneBitmap,
@@ -114,8 +115,6 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
   const [spaceHeld, setSpaceHeld] = useState(false)
   const strokeRef = useRef<Stroke | null>(null)
   const panRef = useRef<Pan | null>(null)
-  /** The document with the stroke in progress, shown instead of the committed one. */
-  const draftRef = useRef<EditorDocument | null>(null)
   const draftSelectionRef = useRef<Rect | null | undefined>(undefined)
   const frameRef = useRef(0)
 
@@ -158,7 +157,8 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
     const context = canvas?.getContext('2d')
     if (!canvas || !context) return
     const { zoom, originX, originY, background, showGrid, tool } = view.current
-    const doc = draftRef.current ?? view.current.doc
+    // The stroke in progress (here or in the 3D view) is shown instead of the saved document.
+    const doc = getDraft() ?? view.current.doc
     const selection =
       draftSelectionRef.current === undefined ? view.current.selection : draftSelectionRef.current
     const ratio = window.devicePixelRatio || 1
@@ -244,6 +244,9 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
   }, [draw])
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current), [])
+
+  // Strokes painted in the 3D view show up here while they are drawn.
+  useEffect(() => onDraft(redraw), [redraw])
 
   // Size the canvas for sharp pixels on high-DPI screens, then draw.
   useLayoutEffect(() => {
@@ -407,7 +410,7 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
     }
     stroke.last = point
     if (stroke.tool !== 'select' && stroke.tool !== 'picker') {
-      draftRef.current = setLayerPixels(stroke.base, stroke.layerId, stroke.working)
+      setDraft(setLayerPixels(stroke.base, stroke.layerId, stroke.working))
     }
     redraw()
   }
@@ -513,9 +516,8 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
     if (!stroke || stroke.pointerId !== event.pointerId) return
     strokeRef.current = null
     const editor = useEditor.getState()
-    const draft = draftRef.current
+    const draft = getDraft()
     const draftSelection = draftSelectionRef.current
-    draftRef.current = null
     draftSelectionRef.current = undefined
 
     if (keep) {
@@ -528,6 +530,7 @@ export function PixelCanvas({ onDropFile }: { onDropFile: (file: File) => void }
           editor.setSelection(stroke.movedSelection)
       }
     }
+    setDraft(null)
     redraw()
   }
 

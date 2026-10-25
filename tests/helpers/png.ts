@@ -53,9 +53,96 @@ export const solidPng = (width: number, height: number, rgba: Rgba): Buffer =>
 export const WATER_MCMETA = '{\n  "animation": {\n    "frametime": 2\n  }\n}\n'
 
 /** A miniature Minecraft client JAR with a handful of textures. */
-export function makeClientJar(): Uint8Array {
+const json = (value: unknown): Buffer => Buffer.from(JSON.stringify(value))
+
+const cubeAll = (texture: string) => json({ parent: 'block/cube_all', textures: { all: texture } })
+
+/** Block models like Minecraft's own (trimmed), for the grass block, stone, dirt and red wool. */
+function blockModels(): Record<string, Uint8Array> {
+  const faces = Object.fromEntries(
+    ['down', 'up', 'north', 'south', 'west', 'east'].map((face) => [
+      face,
+      { texture: `#${face}`, cullface: face },
+    ]),
+  )
+  const side = (texture: string, tint: boolean) =>
+    Object.fromEntries(
+      ['north', 'south', 'west', 'east'].map((face) => [
+        face,
+        { uv: [0, 0, 16, 16], texture, ...(tint ? { tintindex: 0 } : {}), cullface: face },
+      ]),
+    )
+  const models = 'assets/minecraft/models/block/'
+  const states = 'assets/minecraft/blockstates/'
+  const simple = (model: string) =>
+    json({ variants: { '': { model: `minecraft:block/${model}` } } })
+  return {
+    [`${models}block.json`]: json({}),
+    [`${models}cube.json`]: json({
+      parent: 'block/block',
+      elements: [{ from: [0, 0, 0], to: [16, 16, 16], faces }],
+    }),
+    [`${models}cube_all.json`]: json({
+      parent: 'block/cube',
+      textures: Object.fromEntries(
+        ['particle', 'down', 'up', 'north', 'south', 'west', 'east'].map((face) => [face, '#all']),
+      ),
+    }),
+    [`${models}stone.json`]: cubeAll('minecraft:block/stone'),
+    [`${models}dirt.json`]: cubeAll('minecraft:block/dirt'),
+    [`${models}red_wool.json`]: cubeAll('minecraft:block/red_wool'),
+    [`${models}grass_block.json`]: json({
+      parent: 'block/block',
+      textures: {
+        particle: 'block/dirt',
+        bottom: 'block/dirt',
+        top: 'block/grass_block_top',
+        side: 'block/grass_block_side',
+        overlay: 'block/grass_block_side_overlay',
+      },
+      elements: [
+        {
+          from: [0, 0, 0],
+          to: [16, 16, 16],
+          faces: {
+            down: { uv: [0, 0, 16, 16], texture: '#bottom', cullface: 'down' },
+            up: { uv: [0, 0, 16, 16], texture: '#top', cullface: 'up', tintindex: 0 },
+            ...side('#side', false),
+          },
+        },
+        { from: [0, 0, 0], to: [16, 16, 16], faces: side('#overlay', true) },
+      ],
+    }),
+    [`${states}stone.json`]: simple('stone'),
+    [`${states}dirt.json`]: simple('dirt'),
+    [`${states}red_wool.json`]: simple('red_wool'),
+    [`${states}grass_block.json`]: json({
+      variants: { 'snowy=false': { model: 'minecraft:block/grass_block' } },
+    }),
+  }
+}
+
+export interface FakeJarOptions {
+  /** Adds block models and the grass block's and dirt's textures (Minecraft 1.8+ style). */
+  models?: boolean
+}
+
+export function makeClientJar({ models = false }: FakeJarOptions = {}): Uint8Array {
   const textures = 'assets/minecraft/textures/'
+  const withModels: Record<string, Uint8Array> = models
+    ? {
+        ...blockModels(),
+        [`${textures}block/dirt.png`]: solidPng(16, 16, [134, 96, 67, 255]),
+        [`${textures}block/grass_block_top.png`]: solidPng(16, 16, [150, 150, 150, 255]),
+        [`${textures}block/grass_block_side.png`]: solidPng(16, 16, [134, 96, 67, 255]),
+        // Only the top rows are grass; the rest lets the side show through.
+        [`${textures}block/grass_block_side_overlay.png`]: makePng(16, 16, (_x, y) =>
+          y < 3 ? [150, 150, 150, 255] : [0, 0, 0, 0],
+        ),
+      }
+    : {}
   return zipSync({
+    ...withModels,
     [`${textures}block/stone.png`]: solidPng(16, 16, [128, 128, 128, 255]),
     [`${textures}block/red_wool.png`]: solidPng(16, 16, [200, 30, 30, 255]),
     [`${textures}block/water_still.png`]: solidPng(16, 48, [40, 70, 200, 255]),

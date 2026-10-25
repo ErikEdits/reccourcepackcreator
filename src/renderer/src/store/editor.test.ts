@@ -6,7 +6,7 @@ import { activeLayer, addLayer, compose } from '../editor/document'
 import { currentDoc } from '../editor/history'
 import { createBitmap, getPixel, setPixel, toHex, type Bitmap } from '../editor/pixels'
 import { shortcutFromEvent, shortcutMap } from '../editor/shortcuts'
-import { editActiveLayer, nextZoom, useEditor } from './editor'
+import { editActiveLayer, forgetEditedTextures, nextZoom, useEditor } from './editor'
 import { flushPendingSaves } from './pending-saves'
 import { useProject } from './project'
 
@@ -29,6 +29,7 @@ const row: TextureRow = {
   changed: false,
   added: false,
   vanilla: { path: 'block/stone.png', width: 2, height: 2, animated: false, colour: 'grey' },
+  block: 'stone',
 }
 
 function stubApi() {
@@ -57,6 +58,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await useEditor.getState().close()
+  forgetEditedTextures()
   vi.unstubAllGlobals()
 })
 
@@ -157,6 +159,22 @@ describe('editor store', () => {
     expect(api.revert).toHaveBeenCalledWith('block/stone.png')
     expect(api.saveEdit).not.toHaveBeenCalled()
     expect(doc().layers).toHaveLength(1)
+  })
+
+  it('keeps the history of a texture when another one is opened in between', async () => {
+    stubApi()
+    const editor = useEditor.getState()
+    await editor.open(row, 16)
+    editor.commit('Add layer', addLayer(doc()))
+    await flushPendingSaves()
+    images.set(2, createBitmap(2, 2))
+    await editor.open({ ...row, path: 'block/dirt.png', name: 'dirt', block: 'dirt' }, 16)
+    expect(useEditor.getState().history!.entries).toHaveLength(1)
+    await editor.open({ ...row, changed: true }, 16)
+    expect(useEditor.getState().history!.entries.map((entry) => entry.label)).toEqual([
+      'Opened',
+      'Add layer',
+    ])
   })
 
   it('steps through the zoom levels', () => {

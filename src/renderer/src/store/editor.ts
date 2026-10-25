@@ -63,9 +63,10 @@ const TRANSFORM_LABELS: Record<Transform, string> = {
 }
 
 interface EditorState {
-  /** The texture being edited and the pack it belongs to. */
+  /** The texture being edited, the pack it belongs to and the pack's resolution. */
   path: string | null
   dir: string | null
+  resolution: number
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
   history: History | null
@@ -158,6 +159,17 @@ const SAVE_DELAY_MS = 400
 
 /** Lets a texture that finishes loading after another was opened be ignored. */
 let openToken = 0
+
+interface Stashed {
+  history: History
+  originalPalette: Rgba[]
+}
+/** Recently edited textures, so going back to one (another face of a block) keeps its history. */
+const stash = new Map<string, Stashed>()
+const MAX_STASHED = 24
+const stashKey = (dir: string | null, resolution: number, path: string): string =>
+  `${dir}\n${resolution}\n${path}`
+
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 let saving: Promise<void> | null = null
 /** The document changed since the last save. */
@@ -261,12 +273,27 @@ export const useEditor = create<EditorState>()((set, get) => {
     return { doc: createDocument(scaled), original }
   }
 
+  /** Keeps the open texture's history for later; only once it is saved. */
+  const stashCurrent = (): void => {
+    const { path, dir, resolution, history, originalPalette, saveState, status } = get()
+    if (!path || !history || status !== 'ready' || saveState !== 'saved') return
+    const key = stashKey(dir, resolution, path)
+    stash.delete(key)
+    stash.set(key, { history, originalPalette })
+    for (const old of [...stash.keys()].slice(0, Math.max(0, stash.size - MAX_STASHED))) {
+      stash.delete(old)
+    }
+  }
+
   const load = async (row: TextureRow, resolution: number, fromPack: boolean): Promise<void> => {
     const token = ++openToken
+    const dir = useProject.getState().summary?.dir ?? null
+    const stashed = stash.get(stashKey(dir, resolution, row.path))
     set({
       path: row.path,
-      dir: useProject.getState().summary?.dir ?? null,
-      status: 'loading',
+      dir,
+      resolution,
+      status: stashed ? 'ready' : 'loading',
       error: null,
       history: null,
       saveState: 'saved',
@@ -274,7 +301,9 @@ export const useEditor = create<EditorState>()((set, get) => {
       zoom: null,
       pan: { x: 0, y: 0 },
       cursor: null,
+      ...stashed,
     })
+    if (stashed) return
     try {
       const loaded = await loadDocument(row, resolution, fromPack)
       if (token !== openToken) return
@@ -292,6 +321,7 @@ export const useEditor = create<EditorState>()((set, get) => {
   return {
     path: null,
     dir: null,
+    resolution: 16,
     status: 'idle',
     error: null,
     history: null,
@@ -314,6 +344,7 @@ export const useEditor = create<EditorState>()((set, get) => {
 
     open: async (row, resolution) => {
       await flush()
+      stashCurrent()
       await load(row, resolution, row.changed || row.added)
     },
     close: async () => {
@@ -321,6 +352,7 @@ export const useEditor = create<EditorState>()((set, get) => {
       await flush()
       // Another texture was opened while saving: that one stays.
       if (token !== openToken) return
+      stashCurrent()
       openToken++
       set({ path: null, dir: null, status: 'idle', history: null, selection: null, cursor: null })
     },
@@ -346,6 +378,7 @@ export const useEditor = create<EditorState>()((set, get) => {
       }
       useProject.getState().setSummary(result.value)
       useTextures.getState().bumpRevision()
+      stash.delete(stashKey(get().dir, resolution, row.path))
       if (!row.added) await load(row, resolution, false)
       return true
     },
@@ -459,3 +492,19 @@ export const useEditor = create<EditorState>()((set, get) => {
 })
 
 registerFlusher(() => useEditor.getState().flush())
+
+/** Forgets the histories of textures that are not open (e.g. between tests). */
+export function forgetEditedTextures(): void {
+  stash.clear()
+}
+
+/**
+ * The latest version of a texture the editor knows: the open one, or one edited earlier in
+ * this session. Null if it has to be read from the pack or the game.
+ */
+export function editedDocument(path: string): EditorDocument | null {
+  const { path: open, dir, resolution, history } = useEditor.getState()
+  if (path === open) return history ? currentDoc(history) : null
+  const stashed = stash.get(stashKey(dir, resolution, path))
+  return stashed ? currentDoc(stashed.history) : null
+}

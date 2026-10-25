@@ -2,11 +2,15 @@ import { _electron as electron, type ElectronApplication, type Page } from '@pla
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { makeClientJar } from '../helpers/png'
+import { makeClientJar, type FakeJarOptions } from '../helpers/png'
 
 // Chromium's OS-level sandbox cannot start as root (containers) or on CI runners whose
 // AppArmor policy blocks user namespaces. The renderer sandbox (webPreferences) stays on.
-const chromiumArgs = process.env.CI || process.getuid?.() === 0 ? ['--no-sandbox'] : []
+// Test machines have no GPU: WebGL (the 3D preview) runs on Chromium's software renderer.
+const chromiumArgs = [
+  ...(process.env.CI || process.getuid?.() === 0 ? ['--no-sandbox'] : []),
+  '--enable-unsafe-swiftshader',
+]
 
 /** The fake installation only has this version, so tests never download from Mojang. */
 export const INSTALLED_VERSION = '1.21.4'
@@ -19,7 +23,7 @@ export interface LaunchedApp {
   close: () => Promise<void>
 }
 
-export async function launchApp(): Promise<LaunchedApp> {
+export async function launchApp(jar: FakeJarOptions = {}): Promise<LaunchedApp> {
   const root = mkdtempSync(join(tmpdir(), 'rpc-e2e-'))
   const dirs = {
     root,
@@ -29,7 +33,7 @@ export async function launchApp(): Promise<LaunchedApp> {
   }
   const versionDir = join(root, '.minecraft', 'versions', INSTALLED_VERSION)
   mkdirSync(versionDir, { recursive: true })
-  writeFileSync(join(versionDir, `${INSTALLED_VERSION}.jar`), makeClientJar())
+  writeFileSync(join(versionDir, `${INSTALLED_VERSION}.jar`), makeClientJar(jar))
 
   const app = await electron.launch({
     args: [...chromiumArgs, `--user-data-dir=${dirs.userData}`, resolve(__dirname, '../..')],

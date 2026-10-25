@@ -31,6 +31,42 @@ export function extractTextures(jar: Uint8Array): Map<string, Uint8Array> {
   return files
 }
 
+const MODELS_PREFIX = 'assets/minecraft/models/'
+const BLOCKSTATES_PREFIX = 'assets/minecraft/blockstates/'
+
+export interface GameModels {
+  /** Parsed model JSON by name, e.g. "block/stone" or "item/stick". */
+  models: Map<string, unknown>
+  /** Parsed blockstate JSON by block id, e.g. "grass_block". */
+  blockstates: Map<string, unknown>
+}
+
+/** Block and item models and blockstates (Minecraft 1.8 and later; empty before). */
+export function extractModels(jar: Uint8Array): GameModels {
+  const entries = unzipSync(jar, {
+    filter: (file) =>
+      file.name.endsWith('.json') &&
+      (file.name.startsWith(MODELS_PREFIX) || file.name.startsWith(BLOCKSTATES_PREFIX)),
+  })
+  const decoder = new TextDecoder()
+  const models = new Map<string, unknown>()
+  const blockstates = new Map<string, unknown>()
+  for (const [name, bytes] of Object.entries(entries)) {
+    let json: unknown
+    try {
+      json = JSON.parse(decoder.decode(bytes))
+    } catch {
+      continue
+    }
+    if (name.startsWith(MODELS_PREFIX)) {
+      models.set(name.slice(MODELS_PREFIX.length, -'.json'.length), json)
+    } else {
+      blockstates.set(name.slice(BLOCKSTATES_PREFIX.length, -'.json'.length), json)
+    }
+  }
+  return { models, blockstates }
+}
+
 /** Colour group of the average of all mostly-opaque pixels; null if there are none. */
 export function averageColour(image: DecodedImage): ColourBucket | null {
   let r = 0
