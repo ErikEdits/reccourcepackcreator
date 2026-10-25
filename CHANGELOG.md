@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### New
+
+- **Mobs in 3D.** Mob textures are shown on their Minecraft models and can be painted there,
+  just like blocks and items: zombie, husk, drowned, skeleton, stray, wither skeleton, bogged,
+  creeper, cow, red and brown mooshroom, pig, sheep (and its wool), chicken, spider, cave
+  spider, enderman, slime, wolf (all variants), iron golem, and the player skins (wide and
+  slim). Higher-resolution packs work as long as the texture keeps its proportions.
+- Clicks on the 3D model go through empty pixels of outer layers (a player's hat or jacket) to
+  what is visible behind them.
+
+### Notes
+
+- The cow, pig and chicken models that Minecraft 1.21.5 redrew are not included yet; their new
+  textures show no 3D view.
+
 ## [0.5.0] - 2026-10-25
 
 ### New

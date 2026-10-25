@@ -28,6 +28,7 @@ import {
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { BlockModel } from '../../../shared/block-models'
+import { mobModelFor } from '../../../shared/mob-models'
 import type { TextureRow } from '../../../shared/textures'
 import { activeLayer, compose, setLayerPixels, type EditorDocument } from '../editor/document'
 import { currentDoc } from '../editor/history'
@@ -44,8 +45,14 @@ import {
 import { decodeImage } from '../lib/images'
 import { editActiveLayer, editedDocument, useEditor } from '../store/editor'
 import { useTextures } from '../store/textures'
-import { CAMERA_DIRECTION, cameraDistance, FOV } from './camera'
-import { alphaMask, blockGeometry, itemGeometry, type PreviewGeometry } from './geometry'
+import { CAMERA_DIRECTION, cameraDistance, FOV, type PreviewKind } from './camera'
+import {
+  alphaMask,
+  blockGeometry,
+  itemGeometry,
+  mobGeometry,
+  type PreviewGeometry,
+} from './geometry'
 
 /** Tools that work on the 3D model; with the others, dragging turns the model. */
 const PAINT_TOOLS = new Set(['pencil', 'eraser', 'fill', 'picker'])
@@ -118,6 +125,7 @@ function Scene({
   meshRef,
   bridgeRef,
   kind,
+  radius,
   resetKey,
   onReady,
 }: {
@@ -125,7 +133,9 @@ function Scene({
   materials: MeshBasicMaterial[]
   meshRef: RefObject<Mesh | null>
   bridgeRef: RefObject<Bridge | null>
-  kind: 'block' | 'item'
+  kind: PreviewKind
+  /** Size of the model, so the camera can back off far enough to show all of it. */
+  radius: number
   resetKey: number
   /** Called once the model is on screen and can be clicked. */
   onReady: (geometry: PreviewGeometry | null) => void
@@ -142,7 +152,7 @@ function Scene({
 
   useEffect(() => {
     const [x, y, z] = CAMERA_DIRECTION[kind]
-    camera.position.set(x, y, z).setLength(cameraDistance(kind, aspect))
+    camera.position.set(x, y, z).setLength(cameraDistance(radius, aspect))
     camera.lookAt(0, 0, 0)
     const controls = new OrbitControls(camera, gl.domElement)
     controls.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE }
@@ -155,7 +165,7 @@ function Scene({
       controls.removeEventListener('change', redraw)
       controls.dispose()
     }
-  }, [camera, gl, invalidate, kind, resetKey, aspect])
+  }, [camera, gl, invalidate, kind, radius, resetKey, aspect])
 
   useEffect(() => invalidate(), [geometry, materials, invalidate])
 
@@ -191,11 +201,14 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   const status = useEditor((state) => state.status)
   const tool = useEditor((state) => state.tool)
   const block = row.block ? blocks?.find((entry) => entry.id === row.block) : undefined
-  const kind: 'block' | 'item' | null = block?.has3d
+  const mob = row.vanilla ? mobModelFor(row.path, row.vanilla.width, row.vanilla.height) : null
+  const kind: PreviewKind | null = block?.has3d
     ? 'block'
     : row.path.startsWith('item/')
       ? 'item'
-      : null
+      : mob
+        ? 'mob'
+        : null
   const model = useBlockModel(version, kind === 'block' ? (row.block ?? null) : null)
   const [webgl] = useState(() => {
     try {
@@ -214,13 +227,21 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   }, [draft, history, editorPath, row.path, status])
 
   const itemMask = kind === 'item' && live ? alphaMask(live) : null
+  // A pack's picture may be bigger than the original, but must keep the mob's layout.
+  const mobFits = !mob || !live || mobModelFor(row.path, live.width, live.height) === mob
   const geometry = useMemo<PreviewGeometry | null>(() => {
     if (kind === 'block') return model ? blockGeometry(model) : null
     if (kind === 'item' && live && itemMask) return itemGeometry(row.path, live)
+    if (kind === 'mob' && mob && mobFits) return mobGeometry(mob, row.path)
     return null
     // The item's shape only changes with its outline, not with every colour.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, model, itemMask, row.path])
+  }, [kind, model, itemMask, mob, mobFits, row.path])
+  const radius = useMemo(() => {
+    if (!geometry) return 1
+    geometry.geometry.computeBoundingSphere()
+    return Math.round((geometry.geometry.boundingSphere?.radius ?? 1) * 1000) / 1000
+  }, [geometry])
   useEffect(() => () => geometry?.geometry.dispose(), [geometry])
 
   const materials = useMemo(
@@ -319,11 +340,11 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   const strokeRef = useRef<Stroke | null>(null)
   const raycaster = useMemo(() => new Raycaster(), [])
 
-  /** The texture and pixel under the pointer, if it is over the model. */
   /**
    * The texture and pixel under the pointer, if it is over the model. Clicks go through
-   * transparent pixels, except on the texture being edited (so its empty parts can be painted),
-   * and where two faces lie on top of each other (grass and its overlay) that texture wins.
+   * transparent pixels (a player's empty hat layer) to the first visible one. Where two faces lie
+   * on top of each other (grass and its overlay), the texture being edited wins; and where only
+   * empty pixels are hit, those of the texture being edited can be painted.
    */
   const hitAt = (event: ReactPointerEvent): { path: string; point: Point; quad: number } | null => {
     const bridge = bridgeRef.current
@@ -337,7 +358,7 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
     bridge.camera.updateMatrixWorld()
     raycaster.setFromCamera(pointer, bridge.camera)
     const active = useEditor.getState().path
-    const hits: { path: string; point: Point; quad: number; distance: number }[] = []
+    const hits: { path: string; point: Point; quad: number; distance: number; seen: boolean }[] = []
     for (const entry of raycaster.intersectObject(mesh, false)) {
       const slotIndex = entry.face?.materialIndex ?? 0
       const path = geometry.textures[slotIndex]
@@ -348,17 +369,20 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
         animated(path) && bitmap.height > bitmap.width ? bitmap.width : bitmap.height
       const x = Math.min(bitmap.width - 1, Math.max(0, Math.floor(entry.uv.x * bitmap.width)))
       const y = Math.min(frameHeight - 1, Math.max(0, Math.floor(entry.uv.y * frameHeight)))
-      if (path !== active && getPixel(bitmap, x, y)[3] === 0) continue
       hits.push({
         path,
         point: [x, y],
         quad: Math.floor(entry.faceIndex / 2),
         distance: entry.distance,
+        seen: getPixel(bitmap, x, y)[3] > 0,
       })
     }
-    if (hits.length === 0) return null
-    const nearest = hits[0].distance
-    return hits.find((hit) => hit.path === active && hit.distance - nearest < 1e-4) ?? hits[0]
+    const visible = hits.find((hit) => hit.seen)
+    if (!visible) return hits.find((hit) => hit.path === active) ?? null
+    return (
+      hits.find((hit) => hit.path === active && Math.abs(hit.distance - visible.distance) < 1e-4) ??
+      visible
+    )
   }
 
   const paintStroke = (stroke: Stroke, point: Point, quad: number): void => {
@@ -465,12 +489,21 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
   if (!kind) {
     return (
       <Message>
-        There is no 3D view for this texture yet. Blocks and items can be seen and painted in 3D.
+        There is no 3D view for this texture yet. Blocks, items and the common mobs can be seen and
+        painted in 3D.
       </Message>
     )
   }
   if (!webgl) {
     return <Message>3D needs graphics acceleration (WebGL), which is not available here.</Message>
+  }
+  if (!mobFits) {
+    return (
+      <Message>
+        This picture no longer has the shape of the {mob?.id.replace(/_/g, ' ')} model (
+        {mob?.textureSize.join(' × ')} pixels, or larger in the same proportions).
+      </Message>
+    )
   }
   if (kind === 'block' && model === null) {
     return (
@@ -494,6 +527,7 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
           loadedFor === geometry &&
           !!live
         }
+        data-radius={radius}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
         onPointerUp={(event) => finish(event, true)}
@@ -516,6 +550,7 @@ export default function Preview3D({ row, blockRows, onSelectTexture }: Preview3D
             meshRef={meshRef}
             bridgeRef={bridgeRef}
             kind={kind}
+            radius={radius}
             resetKey={resetKey}
             onReady={setShown}
           />

@@ -7,8 +7,8 @@ mode) alike, for Windows and Linux.
 
 > **Status:** early preview. You can create packs with the wizard, browse every
 > texture of your Minecraft version (grouped by block), paint them in the built-in
-> pixel editor or directly on the 3D block and item models, and export the pack for
-> every Minecraft version; mob models, animation and the other editors come next. See
+> pixel editor or directly on the 3D models of blocks, items and mobs, and export the
+> pack for every Minecraft version; animation and the other editors come next. See
 > [CHANGELOG.md](CHANGELOG.md) for what is in each release and
 > [docs/DECISIONS.md](docs/DECISIONS.md) for the full feature scope.
 

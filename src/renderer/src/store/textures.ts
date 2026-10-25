@@ -11,6 +11,7 @@ import {
   type TextureRow,
   textureEntries,
 } from '../../../shared/textures'
+import { mobModelFor } from '../../../shared/mob-models'
 import { useProject } from './project'
 import { useSettings } from './settings'
 
@@ -104,10 +105,11 @@ export function useBlockRows(row: TextureRow | null): TextureRow[] {
   }, [row, rows, blocks])
 }
 
-/** Whether a texture can be shown in 3D: textures of blocks with a model, and items. */
+/** Whether a texture can be shown in 3D: blocks with a model, items and known mobs. */
 export function useHas3d(row: TextureRow): boolean {
   const blocks = useTextures((state) => state.index?.blocks)
   if (row.path.startsWith('item/')) return true
+  if (row.vanilla && mobModelFor(row.path, row.vanilla.width, row.vanilla.height)) return true
   return !!row.block && !!blocks?.some((block) => block.id === row.block && block.has3d)
 }
 

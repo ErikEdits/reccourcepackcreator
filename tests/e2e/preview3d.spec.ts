@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { CAMERA_DIRECTION, cameraDistance, FOV } from '../../src/renderer/src/preview/camera'
+import {
+  CAMERA_DIRECTION,
+  cameraDistance,
+  FOV,
+  type PreviewKind,
+} from '../../src/renderer/src/preview/camera'
 import { INSTALLED_VERSION, launchApp, type LaunchedApp } from './launch'
 
 let launched: LaunchedApp
@@ -47,13 +52,14 @@ const tab = (name: string) =>
     .getByRole('tab', { name, exact: true })
 
 /** Where a point of the model (block units, centred on 0) appears on the screen. */
-async function aim(kind: 'block' | 'item', point: [number, number, number]) {
+async function aim(kind: PreviewKind, point: [number, number, number]) {
   await expect(preview()).toHaveAttribute('data-ready', 'true')
   const box = (await preview().boundingBox())!
   const aspect = box.width / box.height
+  const radius = Number(await preview().getAttribute('data-radius'))
   const camera = new PerspectiveCamera(FOV, aspect, 0.05, 50)
   const [cx, cy, cz] = CAMERA_DIRECTION[kind]
-  camera.position.set(cx, cy, cz).setLength(cameraDistance(kind, aspect))
+  camera.position.set(cx, cy, cz).setLength(cameraDistance(radius, aspect))
   camera.lookAt(0, 0, 0)
   camera.updateMatrixWorld()
   const projected = new Vector3(...point).project(camera)
@@ -66,7 +72,7 @@ async function aim(kind: 'block' | 'item', point: [number, number, number]) {
 /** The centre of texture pixel (x, y) on a face, in block units. */
 const pixel = (x: number, y: number): [number, number] => [(x + 0.5) / 16 - 0.5, (y + 0.5) / 16]
 
-async function clickAt(kind: 'block' | 'item', point: [number, number, number]) {
+async function clickAt(kind: PreviewKind, point: [number, number, number]) {
   const { x, y } = await aim(kind, point)
   await page.mouse.click(x, y)
 }
@@ -97,15 +103,15 @@ async function saved() {
 const RED = [255, 0, 0, 255]
 
 test('shows the textures of a block as one entry', async () => {
-  await expect(page.getByText('9 of 9 textures')).toBeVisible()
-  await expect(tiles()).toHaveCount(7)
+  await expect(page.getByText('10 of 10 textures')).toBeVisible()
+  await expect(tiles()).toHaveCount(8)
   await expect(page.getByRole('button', { name: 'Grass Block, 3 textures' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Blocks', exact: true }).click()
-  await expect(tiles()).toHaveCount(9)
+  await expect(tiles()).toHaveCount(10)
   await expect(page.getByRole('button', { name: 'Grass Block Top' })).toBeVisible()
   await page.getByRole('button', { name: 'Blocks', exact: true }).click()
-  await expect(tiles()).toHaveCount(7)
+  await expect(tiles()).toHaveCount(8)
 
   await page.getByLabel('Search textures').fill('grass block')
   await expect(tiles()).toHaveCount(1)
@@ -182,4 +188,37 @@ test('paints items in 3D', async () => {
   await clickAt('item', [x, 0.5 - y, 1 / 32])
   await saved()
   expect(await packPixel('item/diamond_sword.png', 5, 2)).toEqual(RED)
+})
+
+test('shows mobs with their model and paints them', async () => {
+  await page.getByRole('button', { name: 'Creeper', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Creeper' })).toBeVisible()
+  await expect(preview()).toHaveAttribute('data-ready', 'true')
+  // The middle of the view is the creeper's body.
+  const box = (await preview().boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await saved()
+  await expect(history()).toHaveText(['Opened', 'Pencil'])
+
+  const red = await page.evaluate(async () => {
+    const bytes = await window.api.textures.readImage('pack', 'entity/creeper/creeper.png')
+    const bitmap = await createImageBitmap(new Blob([bytes as Uint8Array<ArrayBuffer>]), {
+      premultiplyAlpha: 'none',
+      colorSpaceConversion: 'none',
+    })
+    const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d')!
+    context.drawImage(bitmap, 0, 0)
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height)
+    const found: [number, number][] = []
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] === 255 && data[i + 1] === 0 && data[i + 2] === 0) {
+        found.push([(i / 4) % bitmap.width, Math.floor(i / 4 / bitmap.width)])
+      }
+    }
+    return found
+  })
+  // One pixel, in the body's part of the creeper's texture (16, 16 to 40, 32).
+  expect(red).toHaveLength(1)
+  const [[x, y]] = red
+  expect(x >= 16 && x < 40 && y >= 16 && y < 32).toBe(true)
 })
