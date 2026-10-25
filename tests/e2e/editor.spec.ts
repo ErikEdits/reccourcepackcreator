@@ -89,7 +89,7 @@ function packPixel(path: string, x: number, y: number): Promise<number[] | null>
 async function saved() {
   const status = page.getByRole('status', { name: 'Save status' })
   await expect(status).toHaveText('Saving…')
-  await expect(status).toHaveText('All changes saved')
+  await expect(status).toHaveText('Saved')
 }
 
 async function setColour(hex: string) {

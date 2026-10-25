@@ -118,7 +118,7 @@ function packPixel(path: string, x: number, y: number): Promise<number[] | null>
 async function saved() {
   const status = page.getByRole('status', { name: 'Save status' })
   await expect(status).toHaveText('Saving…')
-  await expect(status).toHaveText('All changes saved')
+  await expect(status).toHaveText('Saved')
 }
 
 const RED = [255, 0, 0, 255]
@@ -174,7 +174,7 @@ test('switches to the texture of a face that is clicked, then paints it', async 
   await expect(page.getByRole('heading', { name: 'Grass Block' })).toBeVisible()
   // The top texture is open: its own, fresh history.
   await expect(history()).toHaveText(['Opened'])
-  await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('All changes saved')
+  await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('Saved')
   const [px, py] = await paintAt('block', top, [8, 8])
   await saved()
   await expect(history()).toHaveText(['Opened', 'Pencil'])

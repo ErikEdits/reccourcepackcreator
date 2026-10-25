@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- In windows around 1280 pixels wide, the editor's header squeezed the texture's name away and
+  still did not fit, so a scroll bar came and went with the save status and the 3D view
+  jumped. The header now keeps the name, puts the path and status in its second line, and
+  never changes size.
+- Resizing the 3D view no longer resets a view you turned or zoomed; only an untouched view is
+  fitted to the new size. Large mobs can be zoomed out far enough to see them whole.
+
 ## [0.7.0] - 2026-10-25
 
 ### New

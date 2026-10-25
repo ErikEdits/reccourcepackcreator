@@ -150,22 +150,46 @@ function Scene({
   // After this commit the mesh (if any) is in the scene.
   useEffect(() => onReady(geometry), [geometry, onReady])
 
+  const controlsRef = useRef<OrbitControls | null>(null)
+  /** The user turned or zoomed the view; resizing the window then keeps their view. */
+  const turnedRef = useRef(false)
+
   useEffect(() => {
-    const [x, y, z] = CAMERA_DIRECTION[kind]
-    camera.position.set(x, y, z).setLength(cameraDistance(radius, aspect))
-    camera.lookAt(0, 0, 0)
     const controls = new OrbitControls(camera, gl.domElement)
     controls.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE }
-    controls.minDistance = 1
-    controls.maxDistance = 8
     const redraw = (): void => invalidate()
+    const turned = (): void => {
+      turnedRef.current = true
+    }
     controls.addEventListener('change', redraw)
-    invalidate()
+    controls.addEventListener('start', turned)
+    controlsRef.current = controls
     return () => {
       controls.removeEventListener('change', redraw)
+      controls.removeEventListener('start', turned)
       controls.dispose()
+      controlsRef.current = null
     }
-  }, [camera, gl, invalidate, kind, radius, resetKey, aspect])
+  }, [camera, gl, invalidate])
+
+  // Frames the whole model: for a new model, on "Reset view", and when the view changes size
+  // as long as the user has not turned it themselves.
+  const framedRef = useRef('')
+  useEffect(() => {
+    const controls = controlsRef.current
+    if (!controls) return
+    const key = `${kind}:${radius}:${resetKey}`
+    if (key === framedRef.current && turnedRef.current) return
+    framedRef.current = key
+    turnedRef.current = false
+    const [x, y, z] = CAMERA_DIRECTION[kind]
+    camera.position.set(x, y, z).setLength(cameraDistance(radius, aspect))
+    controls.target.set(0, 0, 0)
+    controls.minDistance = radius
+    controls.maxDistance = Math.max(8, radius * 12)
+    controls.update()
+    invalidate()
+  }, [camera, invalidate, kind, radius, resetKey, aspect])
 
   useEffect(() => invalidate(), [geometry, materials, invalidate])
 

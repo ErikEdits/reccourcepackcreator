@@ -37,7 +37,7 @@ const TOOLS: { tool: Tool; label: string }[] = [
 ]
 
 const SAVE_LABELS: Record<SaveState, string> = {
-  saved: 'All changes saved',
+  saved: 'Saved',
   unsaved: 'Saving…',
   saving: 'Saving…',
   failed: 'Not saved',
@@ -442,29 +442,35 @@ export function EditorView({ row }: { row: TextureRow }) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden">
+      {/* One fixed-height header: the name gives way before anything else, so nothing overflows
+          and the canvas below never changes size because of a longer status. */}
       <div className="flex items-center gap-3 border-b border-line px-4 py-2">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold" title={row.path}>
             {row.block && blockRows.length > 1 ? displayName(row.block) : name}
           </h1>
-          <p className="truncate font-mono text-xs text-ink-muted">{row.path}</p>
+          <p className="flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+            <span className="min-w-0 truncate font-mono">{row.path}</span>
+            <span
+              className={`shrink-0 rounded-full px-1.5 leading-4 ${
+                row.changed || row.added
+                  ? 'bg-grass/15 text-grass-strong dark:text-grass'
+                  : 'bg-line'
+              }`}
+            >
+              {statusLabel(row)}
+            </span>
+            <span
+              role="status"
+              aria-label="Save status"
+              className={`shrink-0 ${saveState === 'failed' ? 'text-danger' : ''}`}
+            >
+              {status === 'ready' && editorPath === row.path ? SAVE_LABELS[saveState] : ''}
+            </span>
+          </p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-            row.changed || row.added ? 'bg-grass/15 text-grass-strong dark:text-grass' : 'bg-line'
-          }`}
-        >
-          {statusLabel(row)}
-        </span>
-        <span
-          role="status"
-          aria-label="Save status"
-          className={`shrink-0 text-xs ${saveState === 'failed' ? 'text-danger' : 'text-ink-muted'}`}
-        >
-          {status === 'ready' && editorPath === row.path ? SAVE_LABELS[saveState] : ''}
-        </span>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <label className="cursor-pointer rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-medium hover:border-ink-muted">
             Import image…
             <input
