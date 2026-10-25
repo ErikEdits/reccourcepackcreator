@@ -135,6 +135,10 @@ export function makeClientJar({ models = false }: FakeJarOptions = {}): Uint8Arr
         [`${textures}block/dirt.png`]: solidPng(16, 16, [134, 96, 67, 255]),
         [`${textures}block/grass_block_top.png`]: solidPng(16, 16, [150, 150, 150, 255]),
         [`${textures}block/grass_block_side.png`]: solidPng(16, 16, [134, 96, 67, 255]),
+        // A creeper in Minecraft's 64×32 layout: a green body and a dark face.
+        [`${textures}entity/creeper/creeper.png`]: makePng(64, 32, (x, y) =>
+          x >= 8 && x < 16 && y >= 8 && y < 16 ? [20, 40, 20, 255] : [70, 170, 60, 255],
+        ),
         // Only the top rows are grass; the rest lets the side show through.
         [`${textures}block/grass_block_side_overlay.png`]: makePng(16, 16, (_x, y) =>
           y < 3 ? [150, 150, 150, 255] : [0, 0, 0, 0],

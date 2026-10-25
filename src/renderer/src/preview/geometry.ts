@@ -3,6 +3,7 @@
 
 import { BufferGeometry, Float32BufferAttribute, Matrix4, Vector3 } from 'three'
 import type { BlockModel, FaceName, ModelElement, ModelFace } from '../../../shared/block-models'
+import type { MobCube, MobModel, MobPart } from '../../../shared/mob-models'
 import type { Bitmap } from '../editor/pixels'
 
 /** Which texture each geometry group shows, by index into the material list. */
@@ -314,6 +315,132 @@ export function itemGeometry(path: string, image: Bitmap): PreviewGeometry {
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
   geometry.setAttribute('color', new Float32BufferAttribute(colours, 3))
   geometry.computeVertexNormals()
+  geometry.addGroup(0, positions.length / 3, 0)
+  return { geometry, textures: [path] }
+}
+
+type Region = [left: number, top: number, width: number, height: number]
+
+/**
+ * Geometry of a mob model. Each box takes its six faces from Minecraft's "box UV" layout: top
+ * and bottom in the first row, then right side, front, left side and back. The model is turned
+ * from Minecraft's y-down model space into the preview's y-up space and centred.
+ */
+export function mobGeometry(model: MobModel, path: string): PreviewGeometry {
+  const positions: number[] = []
+  const uvs: number[] = []
+  const colours: number[] = []
+  const [textureWidth, textureHeight] = model.textureSize
+
+  const addCube = (cube: MobCube, matrix: Matrix4): void => {
+    const g = cube.inflate ?? 0
+    const [x, y, z] = cube.from
+    const [w, h, d] = cube.size
+    const [x0, x1, y0, y1, z0, z1] = [x - g, x + w + g, y - g, y + h + g, z - g, z + d + g]
+    const [u, v] = cube.uv
+    let right: Region = [u, v + d, d, h]
+    let left: Region = [u + d + w, v + d, d, h]
+    if (cube.mirror) [right, left] = [left, right]
+    // Corners seen from outside (top left, top right, bottom right, bottom left), y down.
+    const faces: [Region, Corner[]][] = [
+      [
+        [u + d, v + d, w, h],
+        [
+          [x0, y0, z0],
+          [x1, y0, z0],
+          [x1, y1, z0],
+          [x0, y1, z0],
+        ],
+      ],
+      [
+        [u + 2 * d + w, v + d, w, h],
+        [
+          [x1, y0, z1],
+          [x0, y0, z1],
+          [x0, y1, z1],
+          [x1, y1, z1],
+        ],
+      ],
+      [
+        right,
+        [
+          [x0, y0, z1],
+          [x0, y0, z0],
+          [x0, y1, z0],
+          [x0, y1, z1],
+        ],
+      ],
+      [
+        left,
+        [
+          [x1, y0, z0],
+          [x1, y0, z1],
+          [x1, y1, z1],
+          [x1, y1, z0],
+        ],
+      ],
+      [
+        [u + d, v, w, d],
+        [
+          [x0, y0, z1],
+          [x1, y0, z1],
+          [x1, y0, z0],
+          [x0, y0, z0],
+        ],
+      ],
+      [
+        [u + d + w, v, w, d],
+        [
+          [x0, y1, z0],
+          [x1, y1, z0],
+          [x1, y1, z1],
+          [x0, y1, z1],
+        ],
+      ],
+    ]
+    for (const [[left0, top, width, height], corners] of faces) {
+      if (width === 0 || height === 0) continue
+      const [l, r] = cube.mirror ? [left0 + width, left0] : [left0, left0 + width]
+      const faceUv: [number, number][] = [
+        [l / textureWidth, top / textureHeight],
+        [r / textureWidth, top / textureHeight],
+        [r / textureWidth, (top + height) / textureHeight],
+        [l / textureWidth, (top + height) / textureHeight],
+      ]
+      const points = corners.map((corner) => new Vector3(...corner).applyMatrix4(matrix))
+      const normal = new Vector3()
+        .subVectors(points[3], points[0])
+        .cross(new Vector3().subVectors(points[1], points[0]))
+        .normalize()
+      const light = shade(normal)
+      for (const i of [0, 3, 2, 0, 2, 1]) {
+        positions.push(points[i].x, points[i].y, points[i].z)
+        uvs.push(...faceUv[i])
+        colours.push(light, light, light)
+      }
+    }
+  }
+
+  const addPart = (part: MobPart, parent: Matrix4): void => {
+    const [rx, ry, rz] = part.rotation ?? [0, 0, 0]
+    const matrix = parent
+      .clone()
+      .multiply(new Matrix4().makeTranslation(...part.pivot))
+      .multiply(new Matrix4().makeRotationZ(rz))
+      .multiply(new Matrix4().makeRotationY(ry))
+      .multiply(new Matrix4().makeRotationX(rx))
+    for (const cube of part.cubes) addCube(cube, matrix)
+    for (const child of part.children ?? []) addPart(child, matrix)
+  }
+  // Turning half way around z makes y point up (as Minecraft draws mobs); 16 pixels per block.
+  const root = new Matrix4().makeScale(-1 / 16, -1 / 16, 1 / 16)
+  for (const part of model.parts) addPart(part, root)
+
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+  geometry.setAttribute('color', new Float32BufferAttribute(colours, 3))
+  geometry.center()
   geometry.addGroup(0, positions.length / 3, 0)
   return { geometry, textures: [path] }
 }

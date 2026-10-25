@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { BlockModel, ModelFace } from '../../../shared/block-models'
 import { createBitmap, setPixel } from '../editor/pixels'
 import { cameraDistance } from './camera'
-import { alphaMask, blockGeometry, itemGeometry, tintColour } from './geometry'
+import type { MobModel } from '../../../shared/mob-models'
+import { alphaMask, blockGeometry, itemGeometry, mobGeometry, tintColour } from './geometry'
 
 const face = (texture: string, extra: Partial<ModelFace> = {}): ModelFace => ({
   uv: [0, 0, 16, 16],
@@ -88,9 +89,47 @@ describe('item geometry', () => {
   })
 })
 
+describe('mob geometry', () => {
+  const cube = (mirror: boolean): MobModel => ({
+    id: 'test',
+    textureSize: [64, 32],
+    parts: [
+      { pivot: [0, 0, 0], cubes: [{ uv: [0, 0], from: [-4, -8, -4], size: [8, 8, 8], mirror }] },
+    ],
+  })
+  const faceUv = (model: MobModel, face: number) => {
+    const uv = mobGeometry(model, 'entity/test.png').geometry.getAttribute('uv')
+    return [0, 2].map((i) => [uv.getX(face * 6 + i) * 64, uv.getY(face * 6 + i) * 32])
+  }
+
+  it('takes each face from the box UV layout, front face looking towards -z', () => {
+    const { geometry } = mobGeometry(cube(false), 'entity/test.png')
+    expect(geometry.getAttribute('position').count).toBe(36)
+    // Front: (8, 8) to (16, 16) in the texture, like a skin's face (top left, bottom right).
+    expect(faceUv(cube(false), 0)).toEqual([
+      [8, 8],
+      [16, 16],
+    ])
+    const z = geometry.getAttribute('position').getZ(0)
+    expect(z).toBeCloseTo(-0.25)
+    // Right side (seen from the front: on the left) from (0, 8); left side from (16, 8).
+    expect(faceUv(cube(false), 2)[0]).toEqual([0, 8])
+    expect(faceUv(cube(false), 3)[0]).toEqual([16, 8])
+  })
+
+  it('mirrors left limbs: sides swap and every face flips', () => {
+    expect(faceUv(cube(true), 0)).toEqual([
+      [16, 8],
+      [8, 16],
+    ])
+    expect(faceUv(cube(true), 2)[0]).toEqual([24, 8])
+  })
+})
+
 describe('camera', () => {
   it('backs off in narrow views so the model still fits', () => {
-    expect(cameraDistance('block', 0.5)).toBeGreaterThan(cameraDistance('block', 1))
-    expect(cameraDistance('block', 2)).toBe(cameraDistance('block', 1))
+    expect(cameraDistance(1, 0.5)).toBeGreaterThan(cameraDistance(1, 1))
+    expect(cameraDistance(1, 2)).toBe(cameraDistance(1, 1))
+    expect(cameraDistance(2, 1)).toBeCloseTo(cameraDistance(1, 1) * 2)
   })
 })
